@@ -31,9 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BadgerJaus">
-      <HintPath>..\..\BadgerJaus\BadgerJaus\bin\Debug\BadgerJaus.dll</HintPath>
-    </Reference>
     <Reference Include="SlimDX, Version=4.0.13.43, Culture=neutral, PublicKeyToken=b1b0c32fd1ffe4f9, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\SlimDX.dll</HintPath>

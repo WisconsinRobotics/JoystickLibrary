@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SlimDX;
 using SlimDX.DirectInput;
 
@@ -15,34 +13,28 @@ namespace JoystickLibrary
         private const int CENTER_VALUE = 32767;
         private const float ANGLE_RATIO = 0.0054933317056795f;
         private const float VELOCITY_RATIO = 0.0030518509475997f;
+        private const float ROTATION_RATIO = 0.0030518509475997f;
 
         private DirectInput directInputHandle;
         private Joystick joystick;
         private long angle;
         private long velocity;
-        private bool[] dPad;
+        private long rotation;
 
         public JoystickQueryThread()
         {
             angle = 0;
             velocity = 0;
-
-            
+            rotation = 0;
         }
 
-        /* REMOVE AFTER TESTING
-        public Joystick Joystick
-        {
-            get { return joystick; }
-        }
-        */
         public bool InitializeJoystick()
         {
             directInputHandle = new DirectInput();
             IList<DeviceInstance> devicelist = directInputHandle.GetDevices();
 
             DeviceInstance joystickinstance = null;
-            for (int i = 0; i < devicelist.Count; i++) //Traverse through all the lists and find the joystick to enumerate
+            for (int i = 0; i < devicelist.Count; i++) // Traverse through all the lists and find the joystick to enumerate
             {
                 DeviceInstance dinstance = devicelist.ElementAt(i);
                 if (dinstance.Type == DeviceType.Joystick || dinstance.Type == DeviceType.Gamepad)
@@ -57,8 +49,8 @@ namespace JoystickLibrary
                 return false;
             }
 
-            joystick = new Joystick(directInputHandle, joystickinstance.ProductGuid); //Create a joystick object to interface with 
-            Result acquire = joystick.Acquire(); //Pull all data from it 
+            joystick = new Joystick(directInputHandle, joystickinstance.ProductGuid); // Create a joystick object to interface with 
+            Result acquire = joystick.Acquire(); // Pull all data from it 
 
             if (acquire.IsFailure)
             {
@@ -75,6 +67,8 @@ namespace JoystickLibrary
             long yVelocity;
             long angleValue;
             long velocityValue;
+            long zRotation;
+            long rotationValue;
 
             while (true)
             {
@@ -82,7 +76,7 @@ namespace JoystickLibrary
                 {
                     if (!InitializeJoystick())
                     {
-                        System.Threading.Thread.Sleep(1000);
+                        Thread.Sleep(1000);
                         continue;
                     }
                 }
@@ -97,8 +91,10 @@ namespace JoystickLibrary
                 yVelocity = joystickstate.Y;
                 angleValue = xAngle - CENTER_VALUE;
                 velocityValue = CENTER_VALUE - yVelocity;
+                zRotation = joystickstate.RotationZ;
+                rotationValue = CENTER_VALUE - zRotation;
 
-
+                // account for dead zone: angle
                 if (Math.Abs(angleValue) < 4000)
                 {
                     Angle = 0;
@@ -108,6 +104,7 @@ namespace JoystickLibrary
                     Angle = (long)(angleValue * ANGLE_RATIO);
                 }
 
+                // account for dead zone: velocity
                 if (Math.Abs(velocityValue) < 3000)
                 {
                     Velocity = 0;
@@ -115,6 +112,16 @@ namespace JoystickLibrary
                 else
                 {
                     Velocity = (long)(velocityValue * VELOCITY_RATIO);
+                }
+
+                // account for dead zone: rotation
+                if (Math.Abs(rotationValue) < 3000)
+                {
+                    Rotation = 0;
+                }
+                else
+                {
+                    Rotation = (long)(rotationValue * ROTATION_RATIO);
                 }
             }
         }
@@ -125,7 +132,6 @@ namespace JoystickLibrary
             {
                 return Interlocked.Read(ref angle);
             }
-
             set
             {
                 Interlocked.Exchange(ref angle, value);
@@ -141,6 +147,18 @@ namespace JoystickLibrary
             set
             {
                 Interlocked.Exchange(ref velocity, value);
+            }
+        }
+
+        public long Rotation
+        {
+            get
+            {
+                return Interlocked.Read(ref rotation);
+            }
+            set
+            {
+                Interlocked.Exchange(ref rotation, value);
             }
         }
 
