@@ -9,27 +9,30 @@ namespace JoystickLibrary
 {
     public class JoystickQueryThread : IDisposable
     {
-        private const int MAX_AXIS_VALUE = 65535;
-        private const int CENTER_VALUE = 32767;
-        private const float ANGLE_RATIO = 0.0054933317056795f;
-        private const float VELOCITY_RATIO = 0.0030518509475997f;
-        private const float ROTATION_RATIO = 0.0030518509475997f;
+        const int MAX_AXIS_VALUE = 65535;
+        const int CENTER_VALUE = 32767;
+        const float ANGLE_RATIO = 0.0054933317056795f;
+        const float VELOCITY_RATIO = 0.0030518509475997f;
+        const float ROTATION_RATIO = 0.0054933317056795f;
 
-        private DirectInput directInputHandle;
-        private Joystick joystick;
-        private long angle;
-        private long velocity;
-        private long rotation;
+        DirectInput directInputHandle;
+        Joystick joystick;
+        long xVelocity;
+        long yVelocity;
+        long zRotation;
 
         public JoystickQueryThread()
         {
-            angle = 0;
-            velocity = 0;
-            rotation = 0;
+            xVelocity = 0;
+            yVelocity = 0;
+            zRotation = 0;
         }
 
         public bool InitializeJoystick()
         {
+            if (directInputHandle != null && joystick != null)
+                return true;
+
             directInputHandle = new DirectInput();
             IList<DeviceInstance> devicelist = directInputHandle.GetDevices();
 
@@ -55,6 +58,7 @@ namespace JoystickLibrary
             if (acquire.IsFailure)
             {
                 joystick = null;
+                directInputHandle = null;
                 return false;
             }
 
@@ -63,12 +67,12 @@ namespace JoystickLibrary
 
         public void QueryJoystick()
         {
-            long xAngle;
-            long yVelocity;
-            long angleValue;
-            long velocityValue;
-            long zRotation;
-            long rotationValue;
+            long xRawVelocity;
+            long yRawVelocity;
+            long xVelocityValue;
+            long yVelocityValue;
+            long zRawRotation;
+            long zRotationValue;
 
             while (true)
             {
@@ -87,78 +91,78 @@ namespace JoystickLibrary
                 }
 
                 JoystickState joystickstate = joystick.GetCurrentState();
-                xAngle = joystickstate.X;
-                yVelocity = joystickstate.Y;
-                angleValue = xAngle - CENTER_VALUE;
-                velocityValue = CENTER_VALUE - yVelocity;
-                zRotation = joystickstate.RotationZ;
-                rotationValue = CENTER_VALUE - zRotation;
+                xRawVelocity = joystickstate.X;
+                yRawVelocity = joystickstate.Y;
+                xVelocityValue = xRawVelocity - CENTER_VALUE;
+                yVelocityValue = CENTER_VALUE - yRawVelocity;
+                zRawRotation = joystickstate.RotationZ;
+                zRotationValue = CENTER_VALUE - zRawRotation;
 
                 // account for dead zone: angle
-                if (Math.Abs(angleValue) < 4000)
+                if (Math.Abs(xVelocityValue) < 4000)
                 {
-                    Angle = 0;
+                    XVelocity = 0;
                 }
                 else
                 {
-                    Angle = (long)(angleValue * ANGLE_RATIO);
+                    XVelocity = (long)(xVelocityValue * ANGLE_RATIO);
                 }
 
                 // account for dead zone: velocity
-                if (Math.Abs(velocityValue) < 3000)
+                if (Math.Abs(yVelocityValue) < 3000)
                 {
-                    Velocity = 0;
+                    YVelocity = 0;
                 }
                 else
                 {
-                    Velocity = (long)(velocityValue * VELOCITY_RATIO);
+                    YVelocity = (long)(yVelocityValue * VELOCITY_RATIO);
                 }
 
                 // account for dead zone: rotation
-                if (Math.Abs(rotationValue) < 3000)
+                if (Math.Abs(zRotationValue) < 3000)
                 {
-                    Rotation = 0;
+                    ZRotation = 0;
                 }
                 else
                 {
-                    Rotation = (long)(rotationValue * ROTATION_RATIO);
+                    ZRotation = -(long)(zRotationValue * ROTATION_RATIO);
                 }
             }
         }
         
-        public long Angle
+        public long XVelocity
         {
             get
             {
-                return Interlocked.Read(ref angle);
+                return Interlocked.Read(ref xVelocity);
             }
             set
             {
-                Interlocked.Exchange(ref angle, value);
+                Interlocked.Exchange(ref xVelocity, value);
             }
         }
 
-        public long Velocity
+        public long YVelocity
         {
             get
             {
-                return Interlocked.Read(ref velocity);
+                return Interlocked.Read(ref yVelocity);
             }
             set
             {
-                Interlocked.Exchange(ref velocity, value);
+                Interlocked.Exchange(ref yVelocity, value);
             }
         }
 
-        public long Rotation
+        public long ZRotation
         {
             get
             {
-                return Interlocked.Read(ref rotation);
+                return Interlocked.Read(ref zRotation);
             }
             set
             {
-                Interlocked.Exchange(ref rotation, value);
+                Interlocked.Exchange(ref zRotation, value);
             }
         }
 

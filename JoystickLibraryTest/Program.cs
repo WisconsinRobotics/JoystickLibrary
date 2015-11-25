@@ -42,9 +42,10 @@ namespace JoystickLibraryTest
                // Console.Write("\r{0}", txt);
                // System.Threading.Thread.Sleep(500);
                 */
-                velocity = joystick.Velocity;
-                angle = joystick.Angle;
-                Console.Write("\r velocity: {0}    angle: {1}", velocity, angle);
+                velocity = joystick.YVelocity;
+                angle = joystick.XVelocity;
+                //Console.Write("\r velocity: {0}    angle: {1}", velocity, angle);
+                Console.Write("\r Z Rotation: {0}", joystick.ZRotation);
                 
             }
 
