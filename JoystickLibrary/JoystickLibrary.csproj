@@ -42,9 +42,6 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="TurtleBotLibrary">
-      <HintPath>..\..\TurtlebotLibrary\TurtlebotLibrary\bin\Debug\TurtleBotLibrary.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="JoystickQueryThread.cs" />
