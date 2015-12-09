@@ -30,6 +30,8 @@ namespace JoystickLibrary
             xVelocity = 0;
             yVelocity = 0;
             zRotation = 0;
+            slider = 0;
+            pov = 0;
             buttons = new bool[NUMBER_BUTTONS];
         }
 
@@ -78,6 +80,7 @@ namespace JoystickLibrary
             long yVelocityValue;
             long zRawRotation;
             long zRotationValue;
+            int[] pointOfViewControllers;
 
             while (true)
             {
@@ -95,17 +98,22 @@ namespace JoystickLibrary
                     return;
                 }
 
+                // read values from the joystick
                 JoystickState joystickstate = joystick.GetCurrentState();
                 xRawVelocity = joystickstate.X;
                 yRawVelocity = joystickstate.Y;
+
                 xVelocityValue = xRawVelocity - CENTER_VALUE;
                 yVelocityValue = CENTER_VALUE - yRawVelocity;
+
                 zRawRotation = joystickstate.RotationZ;
                 zRotationValue = CENTER_VALUE - zRawRotation;
 
-                slider = joystickstate.GetSliders()[0]; // the device only support one extra axis. The range is from 0 - 65535
-                int[] view = joystickstate.GetPointOfViewControllers();
-                pov = ((view[0] == -1) ? -1 : view[0] / 100);
+                slider = joystickstate.GetSliders()[0];
+
+                pointOfViewControllers = joystickstate.GetPointOfViewControllers();
+                pov = ((pointOfViewControllers[0] == -1) ? -1 : pointOfViewControllers[0] / 100);
+
                 buttons = joystickstate.GetButtons();
 
                 // account for dead zone: angle
@@ -137,9 +145,7 @@ namespace JoystickLibrary
                 {
                     ZRotation = -(long)(zRotationValue * ROTATION_RATIO);
                 }
-                
             }
-
         }
         
         public long XVelocity
@@ -184,26 +190,26 @@ namespace JoystickLibrary
             {
                 // since the buttons are represented as an exploded
                 // bitset, place them into a long in order to exchange
-                // it with another thread
+                // it atomically with another thread
                 long buttonBitSetValue = 0;
                 for (int i = 0; i < NUMBER_BUTTONS; i++)
                 {
-                    uint buttonBit = (uint)((this.buttons[i]) ? 1 : 0);
-                    buttonBitSetValue |= (buttonBit << i);
+                    buttonBitSetValue |= (Convert.ToUInt32(this.buttons[i]) << i);
                 }
 
-                long convertedLong = Interlocked.Read(ref buttonBitSetValue);
+                // pass compressed bitset to other thread
+                long localButtonBitSetValue = Interlocked.Read(ref buttonBitSetValue);
 
                 // once the condensed button bitset has been exchanged to the
                 // other thread, decompress the returned integer back into bool[]
-                bool[] buttons = new bool[12];
+                bool[] localButtons = new bool[NUMBER_BUTTONS];
+
                 for (int i = 0; i < NUMBER_BUTTONS; i++)
                 {
-                    long bitValue = convertedLong & (1 << i);
-                    buttons[i] = bitValue != 0;
+                    localButtons[i] = Convert.ToBoolean(localButtonBitSetValue & (1 << i));
                 }
 
-                return buttons;
+                return localButtons;
             }
         }
 
