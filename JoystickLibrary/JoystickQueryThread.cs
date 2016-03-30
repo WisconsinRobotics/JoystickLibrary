@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,7 +15,7 @@ namespace JoystickLibrary
         const float ANGLE_RATIO = 0.0054933317056795f;
         const float VELOCITY_RATIO = 0.0030518509475997f;
         const float ROTATION_RATIO = 0.0054933317056795f;
-        const int NUMBER_BUTTONS = 12;
+        public const int NUMBER_BUTTONS = 12;
 
         DirectInput directInputHandle;
         Joystick joystick;
@@ -24,6 +25,7 @@ namespace JoystickLibrary
         bool[] buttons;
         long slider;
         long pov;
+        List<JoystickWrapper> joysticks;
 
         public JoystickQueryThread()
         {
