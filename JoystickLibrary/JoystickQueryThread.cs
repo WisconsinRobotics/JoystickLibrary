@@ -13,7 +13,6 @@ namespace JoystickLibrary
     {
         const int MAX_AXIS_VALUE = 65535;
         const int CENTER_VALUE = 32767;
-        const float ANGLE_RATIO = 0.0054933317056795f;
         const float VELOCITY_RATIO = 0.0030518509475997f;
         const float ROTATION_RATIO = 0.0054933317056795f;
         public const int NUMBER_BUTTONS = 12;
@@ -312,7 +311,7 @@ namespace JoystickLibrary
                         }
                         else
                         {
-                            joystickWrapper.XVelocity = (long)(xVelocityValue * ANGLE_RATIO);
+                            joystickWrapper.XVelocity = (long)(xVelocityValue * VELOCITY_RATIO);
                         }
 
                         // account for dead zone: velocity
