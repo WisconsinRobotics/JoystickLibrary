@@ -109,6 +109,26 @@ namespace JoystickLibrary
             return idFound;
         }
 
+        public bool GetSlider(int joystickID, out long Slider)
+        {
+            lock (joysticksLock)
+            {
+                bool idFound = joysticks.ContainsKey(joystickID);
+                Slider = (idFound) ? joysticks[joystickID].Slider : default(long);
+                return idFound;
+            }
+        }
+
+        public bool GetPOV(int joystickID, out long POV)
+        {
+            lock (joysticksLock)
+            {
+                bool idFound = joysticks.ContainsKey(joystickID);
+                POV = (idFound) ? joysticks[joystickID].POV : default(long);
+                return idFound;
+            }
+        }
+
         // gets the data from the 0th joystick
         [Obsolete]
         public long XVelocity
@@ -256,6 +276,7 @@ namespace JoystickLibrary
                         long yVelocityValue = 0L;
                         long zRawRotation = 0L;
                         long zRotationValue = 0L;
+                        int[] pointOfViewControllers;
                         bool[] buttons = new bool[NUMBER_BUTTONS];
 
                         JoystickState joystickstate = joystickWrapper.Joystick.GetCurrentState();
@@ -280,10 +301,9 @@ namespace JoystickLibrary
                         if (primaryId == 0 && buttons[0])
                             primaryId = joystickWrapper.ID;
 
-                        // TODO: eventually add this back in
-                        //slider = joystickstate.GetSliders()[0];
-                        //pointOfViewControllers = joystickstate.GetPointOfViewControllers();
-                        //pov = ((pointOfViewControllers[0] == -1) ? -1 : pointOfViewControllers[0] / 100);
+                        joystickWrapper.Slider = joystickstate.GetSliders()[0];
+                        pointOfViewControllers = joystickstate.GetPointOfViewControllers();
+                        joystickWrapper.POV = ((pointOfViewControllers[0] == -1) ? -1 : pointOfViewControllers[0] / 100);
 
                         // account for dead zone: angle
                         if (Math.Abs(xVelocityValue) < 4000)
