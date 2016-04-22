@@ -62,6 +62,27 @@ namespace JoystickLibrary
             }
         }
 
+        public int GetPrimaryID()
+        {
+            return primaryId;
+        }
+
+        // if there are exactly 2 joysticks, this retruns the id of the non-primary joystick
+        // returns 0 if there is no secondary id
+        public int GetSecondaryID()
+        {
+            List<int> ids = GetJoystickIDs();
+            if (ids.Count != 2)
+                return 0;
+
+            foreach (int id in ids)
+            {
+                if (id != primaryId)
+                    return id;
+            }
+            return 0;
+        }
+
         ////////////////////////////
         //// Accessor funcitons ////
         ////////////////////////////
@@ -299,6 +320,9 @@ namespace JoystickLibrary
 
                         if (primaryId == 0 && buttons[0])
                             primaryId = joystickWrapper.ID;
+
+                        if (joystickWrapper.ID == primaryId)
+                            joystickWrapper.IsPrimary = 1;
 
                         joystickWrapper.Slider = joystickstate.GetSliders()[0];
                         pointOfViewControllers = joystickstate.GetPointOfViewControllers();

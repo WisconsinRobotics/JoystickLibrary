@@ -7,6 +7,7 @@ namespace JoystickLibrary
     {
         Joystick joystick;
         int id;
+        long isPrimary;
 
         long xVelocity;
         long yVelocity;
@@ -25,6 +26,7 @@ namespace JoystickLibrary
             slider = 0;
             pov = 0;
             buttons = 0;
+            isPrimary = 0;
         }
 
         public void Reset()
@@ -35,9 +37,22 @@ namespace JoystickLibrary
             slider = 0;
             pov = 0;
             buttons = 0;
+            isPrimary = 0;
 
             joystick.Unacquire();
             joystick.Dispose();
+        }
+
+        public long IsPrimary
+        {
+            get
+            {
+                return Interlocked.Read(ref isPrimary);
+            }
+            set
+            {
+                Interlocked.Exchange(ref isPrimary, value);
+            }
         }
 
         public long XVelocity

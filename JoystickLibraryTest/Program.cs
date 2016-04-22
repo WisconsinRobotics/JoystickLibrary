@@ -12,45 +12,67 @@ namespace JoystickLibraryTest
 
         public static void Main(string[] args)
         {
-            Console.WriteLine("Please make the console window as wide as possible, then type stuff and hit enter.");
-            Console.ReadLine();
-
             JoystickQueryThread joystick = new JoystickQueryThread(NUMBER_JOYSTICKS);
             joystick.Start();
 
-            Console.WriteLine("{0,-15} {1,-10} {2,-10} {3,-10} {4,-10} {5,-100} {6,-10} {7,-10}", "Joystick #", "Success", "XVelocity", "YVelocity", "ZRotation", "Buttons", "Slider", "POV");
             while (true)
             {
+                System.Threading.Thread.Sleep(10);
+                Console.Clear();
+
                 List<int> ids = joystick.GetJoystickIDs();
 
-                int index = 0;
-                foreach (int id in ids)
+                long YVelocity0;
+                long XVelocity0;
+                long ZRotation0;
+                long YVelocity1;
+                long XVelocity1;
+                long ZRotation1;
+
+                if (ids.Count == 2)
                 {
+                    if (joystick.GetPrimaryID() == 0)
+                    {
+                        Console.WriteLine("No primary id (click the trigger to get a primary id)");
+                        continue;
+                    }
+
+                    int id0 = joystick.GetPrimaryID();
+                    int id1 = joystick.GetSecondaryID();
+
                     bool success = true;
-                    long XVelocity;
-                    long YVelocity;
-                    long ZRotation;
-                    bool[] Buttons;
-                    long POV;
-                    long Slider;
+                    success &= joystick.GetYVelocity(id0, out YVelocity0);
+                    success &= joystick.GetXVelocity(id0, out XVelocity0);
+                    success &= joystick.GetZRotation(id0, out ZRotation0);
+                    success &= joystick.GetYVelocity(id1, out YVelocity1);
+                    success &= joystick.GetXVelocity(id1, out XVelocity1);
+                    success &= joystick.GetZRotation(id1, out ZRotation1);
 
-                    success &= joystick.GetYVelocity(id, out YVelocity);
-                    success &= joystick.GetXVelocity(id, out XVelocity);
-                    success &= joystick.GetZRotation(id, out ZRotation);
-                    success &= joystick.GetButtons(id, out Buttons);
-                    success &= joystick.GetSlider(id, out Slider);
-                    success &= joystick.GetPOV(id, out POV);
-
-                    string formattedButtonString = string.Empty;
-                    for (int i = 0; i < Buttons.Length; i++)
-                        formattedButtonString += string.Format("[{0}]: {1} ", i, Buttons[i] ? 1 : 0);
-
-                    Console.WriteLine("{0,-15} {1,-10} {2,-10} {3,-10} {4,-10} {5,-100} {6,-10} {7,-10}", index, success, XVelocity, YVelocity, ZRotation, formattedButtonString, Slider, POV);
-
-                    index++;
+                    Console.WriteLine("\r Joystick0: velocity: {0}    angle: {1}    ZRotation: {2}\n\rJoystick1:   velocity: {3}    angle: {4}    ZRotation: {5}" +
+                        "\nPrimary ID: {6}",
+                        YVelocity0,
+                        XVelocity0,
+                        ZRotation0,
+                        YVelocity1,
+                        XVelocity1,
+                        ZRotation1,
+                        joystick.GetPrimaryID()
+                        );
                 }
+                else if (ids.Count == 1)
+                {
+                    int id = ids[0];
+                    joystick.GetYVelocity(id, out YVelocity0);
+                    joystick.GetXVelocity(id, out XVelocity0);
+                    joystick.GetZRotation(id, out ZRotation0);
 
-                Thread.Sleep(50);
+                    Console.WriteLine("\r velocity: {0}    angle: {1}    ZRotation: {2}", YVelocity0, XVelocity0, ZRotation0);
+                }
+                else
+                {
+                    Console.WriteLine("No joysticks or more than 2 joystick");
+                    System.Threading.Thread.Sleep(10);
+                }
             }
         }
     }
