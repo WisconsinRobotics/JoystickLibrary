@@ -180,12 +180,13 @@ namespace JoystickLibrary
             {
                 List<int> ids = GetJoystickIDs();
                 if (ids.Count <= 0)
-                    return Int32.MinValue; // TODO change this?
+                    return 0;
 
-                int joystickID = ids[0];
                 long xvelocity;
-                GetXVelocity(joystickID, out xvelocity);
-                return xvelocity;
+                if (GetXVelocity(ids[0], out xvelocity))
+                    return xvelocity;
+                else
+                    return 0;
             }
         }
 
@@ -197,12 +198,13 @@ namespace JoystickLibrary
             {
                 List<int> ids = GetJoystickIDs();
                 if (ids.Count <= 0)
-                    return Int32.MinValue; // TODO change this?
+                    return 0;
 
-                int joystickID = ids[0];
                 long yvelocity;
-                GetYVelocity(joystickID, out yvelocity);
-                return yvelocity;
+                if (GetYVelocity(ids[0], out yvelocity))
+                    return yvelocity;
+                else
+                    return 0;
             }
         }
 
@@ -214,12 +216,14 @@ namespace JoystickLibrary
             {
                 List<int> ids = GetJoystickIDs();
                 if (ids.Count <= 0)
-                    return Int32.MinValue; // TODO change this?
+                    return 0;
 
                 int joystickID = ids[0];
                 long zrotation;
-                GetZRotation(joystickID, out zrotation);
-                return zrotation;
+                if (GetZRotation(ids[0], out zrotation))
+                    return zrotation;
+                else
+                    return 0;
             }
         }
 
