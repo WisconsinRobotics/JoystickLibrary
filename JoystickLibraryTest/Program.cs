@@ -8,7 +8,7 @@ namespace JoystickLibraryTest
 {
     public class Program
     {
-        const int NUMBER_JOYSTICKS = 2;
+        const int NUMBER_JOYSTICKS = 1;
 
         public static void Main(string[] args)
         {
@@ -17,7 +17,12 @@ namespace JoystickLibraryTest
 
             while (true)
             {
-                System.Threading.Thread.Sleep(10);
+                Thread.Sleep(100);
+                bool pressed;
+                if (joystick.GetButton(joystick.GetPrimaryID(), JoystickButton.Button3, out pressed))
+                    Console.Write("\r Button3 pressed: {0}", pressed);
+            /*
+                Thread.Sleep(10);
                 Console.Clear();
 
                 List<int> ids = joystick.GetJoystickIDs();
@@ -73,6 +78,7 @@ namespace JoystickLibraryTest
                     Console.WriteLine("No joysticks or more than 2 joystick");
                     System.Threading.Thread.Sleep(10);
                 }
+                **/
             }
         }
     }

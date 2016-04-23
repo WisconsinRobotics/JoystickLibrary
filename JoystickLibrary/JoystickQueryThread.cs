@@ -9,6 +9,22 @@ using SlimDX.DirectInput;
 
 namespace JoystickLibrary
 {
+    public enum JoystickButton
+    {
+        Trigger = 0,
+        Button2 = 1,
+        Button3 = 2,
+        Button4 = 3,
+        Button5 = 4,
+        Button6 = 5,
+        Button7 = 6,
+        Button8 = 7,
+        Button9 = 8,
+        Button10 = 9,
+        Button11 = 10,
+        Button12 = 11
+    }
+
     public class JoystickQueryThread : IDisposable
     {
         const int MAX_AXIS_VALUE = 65535;
@@ -115,6 +131,13 @@ namespace JoystickLibrary
                 ZRotation = (idFound) ? joysticks[joystickID].ZRotation : default(long);
                 return idFound;
             }
+        }
+
+        public bool GetButton(int joystickID, JoystickButton button, out bool IsButtonPressed)
+        {
+            bool idFound = joysticks.ContainsKey(joystickID);
+            IsButtonPressed = (idFound) ?  Convert.ToBoolean(joysticks[joystickID].Buttons & (1 << (int)button)) : default(bool);
+            return idFound;
         }
 
         public bool GetButtons(int joystickID, out bool[] Buttons)
@@ -274,7 +297,7 @@ namespace JoystickLibrary
 
                 if (joysticks.Count == 0)
                 {
-                    Thread.Sleep(500);
+                    Thread.Sleep(100);
                     continue;
                 }
 
