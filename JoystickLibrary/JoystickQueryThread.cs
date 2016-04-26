@@ -32,9 +32,12 @@ namespace JoystickLibrary
         const float VELOCITY_RATIO = 0.0030518509475997f;
         const float ROTATION_RATIO = 0.0054933317056795f;
         public const int NUMBER_BUTTONS = 12;
+        public const int PRIMARY_JOYSTICK_UNASSIGNED = 0;
 
         int maxNumJoysticks;
         int primaryId; // TODO actually use this once it's detected
+        bool primaryIdSet; //Would have used an out paramater and just return true or false
+        //but didn't want to change GetPrimaryId method in case it broke other code.
         static object joysticksLock;
         ConcurrentDictionary<int, JoystickWrapper> joysticks;
         List<int> prevIds;
@@ -46,7 +49,8 @@ namespace JoystickLibrary
             joysticks = new ConcurrentDictionary<int, JoystickWrapper>();
             joysticksLock = new object();
             directInputHandle = new DirectInput();
-            primaryId = 0;
+            primaryId = PRIMARY_JOYSTICK_UNASSIGNED;
+            primaryIdSet = false;
         }
 
         ////////////////////////////
@@ -78,6 +82,11 @@ namespace JoystickLibrary
             }
         }
 
+        public bool PrimaryIDAssigned()
+        {
+            return primaryId != PRIMARY_JOYSTICK_UNASSIGNED;
+        }
+
         public int GetPrimaryID()
         {
             return primaryId;
@@ -87,6 +96,11 @@ namespace JoystickLibrary
         // returns 0 if there is no secondary id
         public int GetSecondaryID()
         {
+            if (!PrimaryIDAssigned())
+            {
+                throw new InvalidOperationException("Primary ID has not been set. " +
+                    "Cannot access secondary ID without setting Primary ID.");
+            }
             List<int> ids = GetJoystickIDs();
             if (ids.Count != 2)
                 return 0;

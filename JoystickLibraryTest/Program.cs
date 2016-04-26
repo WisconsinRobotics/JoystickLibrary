@@ -8,7 +8,7 @@ namespace JoystickLibraryTest
 {
     public class Program
     {
-        const int NUMBER_JOYSTICKS = 1;
+        const int NUMBER_JOYSTICKS = 2;
 
         public static void Main(string[] args)
         {
