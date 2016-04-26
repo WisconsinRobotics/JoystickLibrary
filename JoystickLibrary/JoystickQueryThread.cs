@@ -59,6 +59,7 @@ namespace JoystickLibrary
 
         public void Start()
         {
+            LocateJoysticks();
             Thread thread = new Thread(QueryJoystick);
             thread.Start();
         }
