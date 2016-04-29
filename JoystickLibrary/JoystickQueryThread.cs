@@ -43,14 +43,15 @@ namespace JoystickLibrary
         List<int> prevIds;
         DirectInput directInputHandle;
 
+        public event EventHandler JoystickDisconnected;
+
         public JoystickQueryThread(int maxNumJoysticks = 1)
         {
             this.maxNumJoysticks = maxNumJoysticks;
             joysticks = new ConcurrentDictionary<int, JoystickWrapper>();
             joysticksLock = new object();
             directInputHandle = new DirectInput();
-            primaryId = PRIMARY_JOYSTICK_UNASSIGNED;
-            primaryIdSet = false;
+            ResetJoysticks();
         }
 
         ////////////////////////////
@@ -246,6 +247,15 @@ namespace JoystickLibrary
         //// Private funcitons /////
         ////////////////////////////
 
+        protected virtual void OnJoystickDisconnected()
+        {
+            EventHandler handler = JoystickDisconnected;
+            if (handler != null)
+            {
+                handler(this, null);
+            }
+        }
+
         private void LocateJoysticks()
         {
             IList<DeviceInstance> devicelist = directInputHandle.GetDevices();
@@ -294,18 +304,27 @@ namespace JoystickLibrary
                     { // this joystick was here last time but now isn't
                         if (joysticks.ContainsKey(id))
                         {
-                            JoystickWrapper joystickWrapper = joysticks[id];
-                            joystickWrapper.Reset();
-                            joysticks.TryRemove(id, out joystickWrapper);
-
-                            // if we are at max joystick capacity (maxNumJoysticks) and a joystick is removed on this loop iteration,
-                            // we will remove it and try to add another next iteration
+                            ResetJoysticks();
+                            OnJoystickDisconnected();
+                            return;
                         }
                     }
                 }
             }
 
             prevIds = GetJoystickIDs(); // need to call GetJoystickIDs(). can't use currIds because it might contain some extra joysticks
+        }
+
+        private void ResetJoysticks()
+        {
+            foreach (KeyValuePair<int, JoystickWrapper> pair in joysticks)
+            {
+                JoystickWrapper joystickWrapper = pair.Value;
+                joystickWrapper.Reset();
+            }
+            joysticks.Clear();
+            primaryId = PRIMARY_JOYSTICK_UNASSIGNED;
+            primaryIdSet = false;
         }
 
         public void QueryJoystick()
