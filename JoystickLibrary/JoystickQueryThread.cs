@@ -47,6 +47,7 @@ namespace JoystickLibrary
 
         public JoystickQueryThread(int maxNumJoysticks = 1)
         {
+            primaryId = PRIMARY_JOYSTICK_UNASSIGNED;
             this.maxNumJoysticks = maxNumJoysticks;
             joysticks = new ConcurrentDictionary<int, JoystickWrapper>();
             joysticksLock = new object();
