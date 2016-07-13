@@ -1,14 +1,13 @@
 #pragma once
 
-#define NUMBER_BUTTONS 12
-#define JOYSTICK_VENDOR_ID 0x46D
-#define JOYSTICK_PRODUCT_ID 0xC215 
-
 #include <dinput.h>
 #include <windows.h>
+#include <msclr\lock.h>
 
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
+
+#define NUMBER_BUTTONS 12
 
 using namespace System;
 using namespace System::Collections::Generic;
@@ -45,21 +44,8 @@ namespace JoystickLibrary
         Button12 = 11
     };
 
-    ref struct JoystickData
+    ref class JoystickService
     {
-        bool alive;
-        int x;
-        int y;
-        int rz;
-        int slider;
-        array<bool>^ buttons;
-        POV pov;
-
-        LPDIRECTINPUTDEVICE *os_obj;
-    };
-
-	public ref class JoystickService
-	{
     public:
         JoystickService(int number_joysticks);
         ~JoystickService(void);
@@ -72,7 +58,7 @@ namespace JoystickLibrary
         bool GetY(int joystickID, int& y);
         bool GetZRot(int joystickID, int& zRot);
         bool GetSlider(int joystickID, int& slider);
-        bool GetButtons(int joystickID, array<bool>^ buttons);
+        bool GetButtons(int joystickID, array<bool>^& buttons);
         bool GetPOV(int joystickID, POV& pov);
         bool RemoveJoystick(int joystickID);
 
@@ -81,13 +67,10 @@ namespace JoystickLibrary
         void LocateJoysticks(void);
         bool IsValidJoystickID(int);
 
-        Dictionary<int, JoystickData^>^ jsMap;
         Thread^ jsPoller;
-        Mutex^ rwLock;
-        int requestedJoysticks;
-        int connectedJoysticks;
+        Object^ m_lock;
+
         bool jsPollerStop;
         bool initialized;
-        int nextJoystickID;
-	};
+    };
 }
