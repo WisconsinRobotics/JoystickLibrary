@@ -186,7 +186,7 @@ void JoystickService::PollJoysticks(void)
             if (!pair.second.alive)
                 continue;
 
-            JoystickData jsData = pair.second;
+            JoystickData& jsData = pair.second;
             joystick = (LPDIRECTINPUTDEVICE8) jsData.os_obj;
             
             hr = joystick->Poll();

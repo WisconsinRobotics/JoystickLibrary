@@ -211,7 +211,7 @@ void JoystickService::PollJoysticks(void)
             if (!pair.second.alive)
                 continue;
 
-            JoystickData jsData = pair.second;
+            JoystickData& jsData = pair.second;
             joystick = (LPDIRECTINPUTDEVICE8)jsData.os_obj;
 
             hr = joystick->Poll();
@@ -292,7 +292,7 @@ int JoystickService::GetConnectedJoysticksCount(void)
     return connectedJoysticks;
 }
 
-bool JoystickService::GetX(int joystickID, int& x)
+bool JoystickService::GetX(int joystickID, Int32% x)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
@@ -301,7 +301,7 @@ bool JoystickService::GetX(int joystickID, int& x)
     return true;
 }
 
-bool JoystickService::GetY(int joystickID, int& y)
+bool JoystickService::GetY(int joystickID, Int32% y)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
@@ -310,7 +310,7 @@ bool JoystickService::GetY(int joystickID, int& y)
     return true;
 }
 
-bool JoystickService::GetZRot(int joystickID, int& zRot)
+bool JoystickService::GetZRot(int joystickID, Int32% zRot)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
@@ -319,7 +319,7 @@ bool JoystickService::GetZRot(int joystickID, int& zRot)
     return true;
 }
 
-bool JoystickService::GetSlider(int joystickID, int& slider)
+bool JoystickService::GetSlider(int joystickID, Int32% slider)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
@@ -328,19 +328,19 @@ bool JoystickService::GetSlider(int joystickID, int& slider)
     return true;
 }
 
-bool JoystickService::GetButtons(int joystickID, array<bool>^& buttons)
+bool JoystickService::GetButtons(int joystickID, array<bool>^% buttons)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
 
     buttons = gcnew array<bool>(NUMBER_BUTTONS);
     for (int i = 0; i < NUMBER_BUTTONS; i++)
-        buttons[i] = jsMap[joystickID].buttons[i];
+        buttons[i] = jsMap[joystickID].alive && jsMap[joystickID].buttons[i];
 
     return true;
 }
 
-bool JoystickService::GetPOV(int joystickID, POV& pov)
+bool JoystickService::GetPOV(int joystickID, POV^% pov)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;

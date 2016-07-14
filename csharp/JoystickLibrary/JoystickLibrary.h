@@ -15,7 +15,7 @@ using namespace System::Threading;
 
 namespace JoystickLibrary
 {
-    enum class POV : int
+    public enum class POV : int
     {
         POV_NONE = 0,
         POV_WEST = 1 << 0,
@@ -28,7 +28,7 @@ namespace JoystickLibrary
         POV_SOUTHEAST = POV_SOUTH | POV_EAST
     };
 
-    enum class Button : int
+    public enum class Button : int
     {
         Trigger = 0,
         Button2 = 1,
@@ -44,7 +44,7 @@ namespace JoystickLibrary
         Button12 = 11
     };
 
-    ref class JoystickService
+    public ref class JoystickService
     {
     public:
         JoystickService(int number_joysticks);
@@ -54,12 +54,12 @@ namespace JoystickLibrary
         List<int>^ GetJoystickIDs(void);
         int GetConnectedJoysticksCount(void);
         bool Start(void);
-        bool GetX(int joystickID, int& x);
-        bool GetY(int joystickID, int& y);
-        bool GetZRot(int joystickID, int& zRot);
-        bool GetSlider(int joystickID, int& slider);
-        bool GetButtons(int joystickID, array<bool>^& buttons);
-        bool GetPOV(int joystickID, POV& pov);
+        bool GetX(int joystickID, Int32% x);
+        bool GetY(int joystickID, Int32% y);
+        bool GetZRot(int joystickID, Int32% zRot);
+        bool GetSlider(int joystickID, Int32% slider);
+        bool GetButtons(int joystickID, array<bool>^% buttons);
+        bool GetPOV(int joystickID, POV^% pov);
         bool RemoveJoystick(int joystickID);
 
     private:
