@@ -14,8 +14,6 @@
 
 #include "joystick.h"
 
-#include <iostream>
-
 using namespace JoystickLibrary;
 
 std::vector<std::string> jsHandleList;
@@ -174,6 +172,13 @@ void JoystickService::PollJoysticks(void)
                             break;        
                     }
                 }
+                else
+                {
+                    this->rwLock.unlock();
+                    this->RemoveJoystick(pair.first);
+                    this->rwLock.lock();
+                    break;
+                }
             }
         }
         this->rwLock.unlock();
@@ -229,7 +234,7 @@ enumerate_loop:
         }
         
         // check for device was previously connected
-        devUniqueID = libevdev_get_uniq(dev);
+        devUniqueID = libevdev_get_phys(dev);
         for (auto& pair : this->jsMap)
         {
             const char *curDevUniqueID;
@@ -237,7 +242,7 @@ enumerate_loop:
             if (pair.second.alive)
                 continue;
             
-            curDevUniqueID = libevdev_get_uniq((struct libevdev *) pair.second.os_obj);
+            curDevUniqueID = libevdev_get_phys((struct libevdev *) pair.second.os_obj);
             
             if (devUniqueID && curDevUniqueID &&
                 (strcmp(devUniqueID, curDevUniqueID) == 0))
