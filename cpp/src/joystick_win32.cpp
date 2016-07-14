@@ -1,3 +1,30 @@
+/*
+ * Copyright (c) 2016, Wisconsin Robotics
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * * Neither the name of Wisconsin Robotics nor the
+ *   names of its contributors may be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *   
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL WISCONSIN ROBOTICS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <dinput.h>
 #include <windows.h>
 
@@ -29,6 +56,12 @@ struct
 
 LPDIRECTINPUT8 di;
 
+/**
+ * Callback to configure the axis values on the joystick.
+ * @param instance A pointer to the device instance
+ * @param context A pointer to the joystick instance
+ * @return DIENUM_CONTINUE on success, DIENUM_STOP otherwise
+ */
 static BOOL CALLBACK JoystickConfigCallback(const DIDEVICEOBJECTINSTANCE *instance, void *context)
 {
     DIPROPRANGE propRange;
@@ -53,9 +86,19 @@ static BOOL CALLBACK JoystickConfigCallback(const DIDEVICEOBJECTINSTANCE *instan
     return DIENUM_CONTINUE;
 }
 
+/**
+ * A callback function called for each found joystick.
+ * @param instance A pointer to the device instance.
+ * @param context (unused)
+ * @return DIENUM_CONTINUE on success, DIENUM_STOP otherwise
+ */
 static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *context)
 {
     LPDIRECTINPUTDEVICE8 joystick;
+    DIPROPDWORD dipdw;
+
+    // context is not used
+    UNREFERENCED_PARAMETER(context); 
 
     if (*EnumerateContext.connectedJoysticks >= *EnumerateContext.requestedJoysticks)
         return DIENUM_STOP;
@@ -69,7 +112,9 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
         LPDIRECTINPUTDEVICE8 inactiveJoystick = (LPDIRECTINPUTDEVICE8) pair.second.os_obj;
         info.dwSize = sizeof(DIDEVICEINSTANCE);
-        auto hr = inactiveJoystick->GetDeviceInfo(&info);
+        
+        if (FAILED(inactiveJoystick->GetDeviceInfo(&info)))
+            continue;
 
         if (info.guidInstance == instance->guidInstance)
         {
@@ -83,14 +128,38 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
     if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
         return DIENUM_CONTINUE;
 
+    // check vendor and product ID
+    dipdw.diph.dwSize       = sizeof(DIPROPDWORD); 
+    dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER); 
+    dipdw.diph.dwObj        = 0;
+    dipdw.diph.dwHow        = DIPH_DEVICE;
+
+    if (FAILED(joystick->GetProperty(DIPROP_VIDPID, &dipdw.diph)))
+    {
+        joystick->Release();
+        return DIENUM_CONTINUE;
+    }
+
+    if (LOWORD(dipdw.dwData) != JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JOYSTICK_PRODUCT_ID)
+    {
+        joystick->Release();
+        return DIENUM_CONTINUE;
+    }
+
     // create and start tracking joystick
     // use DIJOYSTATE struct for data acquisition
     if (FAILED(joystick->SetDataFormat(&c_dfDIJoystick)))
+    {
+        joystick->Release();
         return DIENUM_CONTINUE;
+    }
 
     // axis configuration to -100 -> 100
     if (FAILED(joystick->EnumObjects(JoystickConfigCallback, joystick, DIDFT_AXIS)))
+    {
+        joystick->Release();
         return DIENUM_CONTINUE;
+    }
 
     // new joystick - add to map & acquire
     joystick->Acquire();

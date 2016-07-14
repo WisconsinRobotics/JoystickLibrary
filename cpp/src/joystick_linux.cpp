@@ -1,6 +1,32 @@
+/*
+ * Copyright (c) 2016, Wisconsin Robotics
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * * Neither the name of Wisconsin Robotics nor the
+ *   names of its contributors may be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *   
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL WISCONSIN ROBOTICS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <errno.h>
 #include <cstring>
-#include <assert.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -10,13 +36,10 @@
 #include <libevdev/libevdev.h>
 #include <string>
 #include <algorithm>
-#include <errno.h>
 
 #include "joystick.h"
 
 using namespace JoystickLibrary;
-
-std::vector<std::string> jsHandleList;
 
 constexpr int X_MIN = 0;
 constexpr int X_MAX = 1023;
@@ -28,7 +51,7 @@ constexpr int SLIDER_MIN = 255;
 constexpr int SLIDER_MAX = 0;
 
 
-static int NormalizeJoystickValue(int val, int min, int max)
+static int NormalizeAxisValue(int val, int min, int max)
 {
     return (int) ((200.0 / (max - min)) * (val) - 100);
 }
@@ -120,15 +143,16 @@ void JoystickService::PollJoysticks(void)
                             switch (ev.code)
                             {
                                 case ABS_X:
-                                    jsData.x = NormalizeJoystickValue(ev.value, X_MIN, X_MAX);
+                                    jsData.x = NormalizeAxisValue(ev.value, X_MIN, X_MAX);
                                     break;
                                 case ABS_Y:
-                                    jsData.y = -NormalizeJoystickValue(ev.value, Y_MIN, Y_MAX);
+                                    jsData.y = -NormalizeAxisValue(ev.value, Y_MIN, Y_MAX);
                                     break;
                                 case ABS_RZ:
-                                    jsData.rz = NormalizeJoystickValue(ev.value, Z_MIN, Z_MAX);
+                                    jsData.rz = NormalizeAxisValue(ev.value, Z_MIN, Z_MAX);
                                     break;
                                 case ABS_THROTTLE:
+                                    // slider goes from 0 -> 100
                                     jsData.slider = 100 + (int) (((100.0 / (SLIDER_MAX - SLIDER_MIN)) * (ev.value)));
                                     break;
                                 case ABS_HAT0X:
@@ -192,12 +216,11 @@ void JoystickService::LocateJoysticks(void)
     
     DIR *js_dir = opendir("/dev/input");
     if (!js_dir)
-    {
-        assert(false);
         return;
-    }
     
 enumerate_loop:
+    // This loop is the equivalent of doing:
+    // ls  /dev/input/event* and then checking each one
     struct dirent *devinfo;
     while ((devinfo = readdir(js_dir)) != nullptr)
     {      
@@ -211,10 +234,6 @@ enumerate_loop:
 
         memset(buffer, 0, 30);
         std::snprintf(buffer, 30, "/dev/input/%s", devinfo->d_name);
-
-        auto result = std::find(jsHandleList.begin(), jsHandleList.end(), buffer);
-        if (result != jsHandleList.end())
-            continue;
 
         if ((fd = open(buffer, O_RDONLY)) < 0)
             continue;
@@ -265,7 +284,6 @@ enumerate_loop:
         this->jsMap[this->nextJoystickID].alive = true;
         this->jsMap[this->nextJoystickID].os_obj = dev;
 
-        jsHandleList.push_back(std::string(devinfo->d_name, strlen(devinfo->d_name)));
         this->nextJoystickID++;
         this->connectedJoysticks++;
     }
