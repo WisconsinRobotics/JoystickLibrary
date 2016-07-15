@@ -102,31 +102,54 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
     if (*EnumerateContext.connectedJoysticks >= *EnumerateContext.requestedJoysticks)
         return DIENUM_STOP;
-
+    
+    if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
+        return DIENUM_CONTINUE;
+    
+    DIPROPGUIDANDPATH jsGuidPath;
+    jsGuidPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+    jsGuidPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+    jsGuidPath.diph.dwHow = DIPH_DEVICE;
+    jsGuidPath.diph.dwObj = 0;   
+    
+    if (FAILED(joystick->GetProperty(DIPROP_GUIDANDPATH, &jsGuidPath.diph)))
+    {
+        joystick->Release();
+        return DIENUM_CONTINUE;
+    }
+    
     // check if joystick was a formerly removed one
     for (auto& pair : *EnumerateContext.jsMap)
     {
-        DIDEVICEINSTANCE info;
-        if (pair.second.alive)
-            continue;
-
-        LPDIRECTINPUTDEVICE8 inactiveJoystick = (LPDIRECTINPUTDEVICE8) pair.second.os_obj;
-        info.dwSize = sizeof(DIDEVICEINSTANCE);
+        DIPROPGUIDANDPATH info;
+        LPDIRECTINPUTDEVICE8 inactiveJoystick;
         
-        if (FAILED(inactiveJoystick->GetDeviceInfo(&info)))
+        inactiveJoystick = (LPDIRECTINPUTDEVICE8) pair.second.os_obj;
+        info.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+        info.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+        info.diph.dwHow = DIPH_DEVICE;
+        info.diph.dwObj = 0;
+        
+        if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &info.diph)))
             continue;
-
-        if (info.guidInstance == instance->guidInstance)
+        
+        // path match
+        if (info.wszPath && jsGuidPath.wszPath && lstrcmp(info.wszPath, jsGuidPath.wszPath) == 0)
         {
+            // if this path is already active, don't enumerate
+            if (pair.second.alive)
+            {
+                joystick->Release();
+                return DIENUM_CONTINUE;
+            }
+
             pair.second.alive = true;
             inactiveJoystick->Acquire();
             (*EnumerateContext.connectedJoysticks)++;
+            joystick->Release();
             return DIENUM_CONTINUE;
         }
     }
-
-    if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
-        return DIENUM_CONTINUE;
 
     // check vendor and product ID
     dipdw.diph.dwSize       = sizeof(DIPROPDWORD); 
@@ -177,7 +200,7 @@ JoystickService::~JoystickService(void)
     this->jsPollerStop = true;
     this->jsPoller.join();
     
-    for (auto pair : this->jsMap)
+    for (auto& pair : this->jsMap)
     {
         LPDIRECTINPUTDEVICE8 js = (LPDIRECTINPUTDEVICE8) pair.second.os_obj;
         
