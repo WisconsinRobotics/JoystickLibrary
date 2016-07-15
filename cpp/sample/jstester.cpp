@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
         {
             std::cout << "[" << i << "] ";
             PrintAbsoluteAxes(*s, i);
-            PrintButtons(*s, i);
-            PrintPOV(*s, i); 
+            //PrintButtons(*s, i);
+            //PrintPOV(*s, i); 
         }
 
         ids.clear();

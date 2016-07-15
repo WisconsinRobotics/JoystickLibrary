@@ -102,6 +102,7 @@ namespace JoystickLibrary
 
         /**
          * Constructs a new JoystickService instance with the specified number of joysticks.
+         * @param number_joysticks Number of joysticks to enumerate
          */
         JoystickService(int number_joysticks);
         ~JoystickService(void);
@@ -133,6 +134,8 @@ namespace JoystickLibrary
 
         /**
          * Gets the X axis value of the specified joystick ID.
+         * Pulling to the left constitutes as negative with a min value of -100.
+         * Pulling to the right is interpreted as positive with a max value of +100.
          * @param joystickID the joystick ID
          * @param x A reference in which to save the value. Will not be modified if call fails. 
          * @return false if invalid joystickID or disconnected joystick, true otherwise.
@@ -141,6 +144,8 @@ namespace JoystickLibrary
 
         /**
          * Gets the Y axis value of the specified joystick ID.
+         * Pushing forwards (away from you) constitutes as positive with a max value of +100.
+         * Pushing backwards (towards you) constitutes as negative with a min value of -100.         
          * @param joystickID the joystick ID
          * @param y A reference in which to save the value. Will not be modified if call fails. 
          * @return false if invalid joystickID or disconnected joystick, true otherwise.
@@ -149,6 +154,8 @@ namespace JoystickLibrary
 
         /**
          * Gets the Z rotation axis value of the specified joystick ID.
+         * Twisting counter clockwise constitutes as negative, with a min value of -100.
+         * Twisting clockwise constitutes as positive, with a max value of +100.         
          * @param joystickID the joystick ID
          * @param zRot A reference in which to save the value. Will not be modified if call fails. 
          * @return false if invalid joystickID or disconnected joystick, true otherwise.
@@ -156,9 +163,10 @@ namespace JoystickLibrary
         bool GetZRot(int joystickID, int& zRot);
 
         /**
-         * Gets the Y axis value of the specified joystick ID.
+         * Gets the slider value of the specified joystick ID.
+         * The '-' marking on the slider is 0, and the "+" marking is 100.
          * @param joystickID the joystick ID
-         * @param y A reference in which to save the value. Will not be modified if call fails. 
+         * @param slider A reference in which to save the value. Will not be modified if call fails. 
          * @return false if invalid joystickID or disconnected joystick, true otherwise.
          */
         bool GetSlider(int joystickID, int& slider);

@@ -1,3 +1,30 @@
+/*
+* Copyright (c) 2016, Wisconsin Robotics
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+* * Redistributions of source code must retain the above copyright
+*   notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above copyright
+*   notice, this list of conditions and the following disclaimer in the
+*   documentation and/or other materials provided with the distribution.
+* * Neither the name of Wisconsin Robotics nor the
+*   names of its contributors may be used to endorse or promote products
+*   derived from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+* DISCLAIMED. IN NO EVENT SHALL WISCONSIN ROBOTICS BE LIABLE FOR ANY
+* DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+* ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include "JoystickLibrary.h"
 
 #include <map>
@@ -35,6 +62,12 @@ int requestedJoysticks;
 int connectedJoysticks;
 int nextJoystickID;
 
+/**
+ Callback to configure the axis values on the joystick.
+ @param instance A pointer to the device instance
+ @param context A pointer to the joystick instance
+ @return DIENUM_CONTINUE on success, DIENUM_STOP otherwise
+ */
 static BOOL CALLBACK JoystickConfigCallback(const DIDEVICEOBJECTINSTANCE *instance, void *context)
 {
     DIPROPRANGE propRange;
@@ -59,35 +92,85 @@ static BOOL CALLBACK JoystickConfigCallback(const DIDEVICEOBJECTINSTANCE *instan
     return DIENUM_CONTINUE;
 }
 
+/**
+  A callback function called for each found joystick.
+  @param instance A pointer to the device instance.
+  @param context (unused)
+  @return DIENUM_CONTINUE on success, DIENUM_STOP otherwise
+ */
 static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *context)
 {
     LPDIRECTINPUTDEVICE8 joystick;
+    DIPROPDWORD dipdw;
 
     if (connectedJoysticks >= requestedJoysticks)
         return DIENUM_STOP;
 
+    DIPROPGUIDANDPATH jsGuidPath;
+    jsGuidPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+    jsGuidPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+    jsGuidPath.diph.dwHow = DIPH_DEVICE;
+    jsGuidPath.diph.dwObj = 0;
+
+    if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
+        return DIENUM_CONTINUE;
+
+    if (FAILED(joystick->GetProperty(DIPROP_GUIDANDPATH, &jsGuidPath.diph)))
+    {
+        joystick->Release();
+        return DIENUM_CONTINUE;
+    }
+
     // check if joystick was a formerly removed one
     for (auto& pair : jsMap)
     {
-        DIDEVICEINSTANCE info;
-        if (pair.second.alive)
+        DIPROPGUIDANDPATH info;
+        LPDIRECTINPUTDEVICE8 inactiveJoystick;
+
+        inactiveJoystick = (LPDIRECTINPUTDEVICE8)pair.second.os_obj;
+        info.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+        info.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+        info.diph.dwHow = DIPH_DEVICE;
+        info.diph.dwObj = 0;
+
+        if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &info.diph)))
             continue;
 
-        LPDIRECTINPUTDEVICE8 inactiveJoystick = (LPDIRECTINPUTDEVICE8)pair.second.os_obj;
-        info.dwSize = sizeof(DIDEVICEINSTANCE);
-        auto hr = inactiveJoystick->GetDeviceInfo(&info);
-
-        if (info.guidInstance == instance->guidInstance)
+        // path match
+        if (info.wszPath && jsGuidPath.wszPath && lstrcmp(info.wszPath, jsGuidPath.wszPath) == 0)
         {
+            // if this path is already active, don't enumerate
+            if (pair.second.alive)
+            {
+                joystick->Release();
+                return DIENUM_CONTINUE;
+            }
+
             pair.second.alive = true;
             inactiveJoystick->Acquire();
             connectedJoysticks++;
+            joystick->Release();
             return DIENUM_CONTINUE;
         }
     }
 
-    if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
+    // check vendor and product ID
+    dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+    dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+    dipdw.diph.dwObj = 0;
+    dipdw.diph.dwHow = DIPH_DEVICE;
+
+    if (FAILED(joystick->GetProperty(DIPROP_VIDPID, &dipdw.diph)))
+    {
+        joystick->Release();
         return DIENUM_CONTINUE;
+    }
+
+    if (LOWORD(dipdw.dwData) != JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JOYSTICK_PRODUCT_ID)
+    {
+        joystick->Release();
+        return DIENUM_CONTINUE;
+    }
 
     // create and start tracking joystick
     // use DIJOYSTATE struct for data acquisition
@@ -340,7 +423,7 @@ bool JoystickService::GetButtons(int joystickID, array<bool>^% buttons)
     return true;
 }
 
-bool JoystickService::GetPOV(int joystickID, POV^% pov)
+bool JoystickService::GetPOV(int joystickID, POV% pov)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))
         return false;
