@@ -50,6 +50,7 @@ constexpr int Z_MAX = 255;
 constexpr int SLIDER_MIN = 255;
 constexpr int SLIDER_MAX = 0;
 
+std::thread enumerateThread;
 
 static int NormalizeAxisValue(int val, int min, int max)
 {
@@ -60,7 +61,8 @@ JoystickService::~JoystickService(void)
 {
     this->jsPollerStop = true;
     this->jsPoller.join();
-    
+    enumerateThread.join();    
+
     for (auto pair : jsMap)
     {
         struct libevdev *evdev = (struct libevdev *) pair.second.os_obj;
@@ -89,7 +91,6 @@ bool JoystickService::RemoveJoystick(int joystickID)
     struct libevdev *joystick = (struct libevdev *) jsMap[joystickID].os_obj;
     close(libevdev_get_fd(joystick));
     this->connectedJoysticks--;
-    
     this->rwLock.unlock();
     return true;
 }
@@ -99,10 +100,11 @@ void JoystickService::PollJoysticks(void)
     if (!this->initialized)
         return;
 
+    enumerateThread = std::thread(&JoystickService::LocateJoysticks, this);
+
     while (!this->jsPollerStop)
     {
         this->rwLock.lock();
-        this->LocateJoysticks();
         
         for (auto& pair : jsMap)
         {
@@ -170,7 +172,7 @@ void JoystickService::PollJoysticks(void)
                                     }
 
                                     // wipe lower two bits and update with bitset
-                                    jsData.pov = (POV) (((int)jsData.pov & 0xC) |  (int) bitset);
+                                    jsData.pov = (POV) (((int)jsData.pov & 0xC) | (int) bitset);
                                     break;
 
                                 case ABS_HAT0Y:
@@ -211,82 +213,88 @@ void JoystickService::PollJoysticks(void)
 
 void JoystickService::LocateJoysticks(void)
 {
-    if (this->connectedJoysticks >= this->requestedJoysticks)
-        return;
-    
-    DIR *js_dir = opendir("/dev/input");
-    if (!js_dir)
-        return;
-    
-enumerate_loop:
-    // This loop is the equivalent of doing:
-    // ls  /dev/input/event* and then checking each one
-    struct dirent *devinfo;
-    while ((devinfo = readdir(js_dir)) != nullptr)
-    {      
-        int fd;
-        struct libevdev *dev;
-        char buffer[30];
-        const char *devUniqueID;
-
-        if (!strstr(devinfo->d_name, "event"))
+    while (!this->jsPollerStop) 
+    {
+        if (this->connectedJoysticks >= this->requestedJoysticks)
             continue;
-
-        memset(buffer, 0, 30);
-        std::snprintf(buffer, 30, "/dev/input/%s", devinfo->d_name);
-
-        if ((fd = open(buffer, O_RDONLY)) < 0)
-            continue;
-
-        if (libevdev_new_from_fd(fd, &dev) < 0)
-        {
-            close(fd);
-            continue;
-        }
         
-        if (libevdev_get_id_vendor(dev) != JOYSTICK_VENDOR_ID ||
-            libevdev_get_id_product(dev) != JOYSTICK_PRODUCT_ID)
-        {
-            libevdev_free(dev);
-            close(fd);
-            continue;
-        }
+        DIR *js_dir = opendir("/dev/input");
+        if (!js_dir)
+            return;
         
-        // check for device was previously connected
-        devUniqueID = libevdev_get_phys(dev);
-        for (auto& pair : this->jsMap)
-        {
-            const char *curDevUniqueID;
-            
-            if (pair.second.alive)
+    enumerate_loop:
+        // This loop is the equivalent of doing:
+        // ls  /dev/input/event* and then checking each one
+        struct dirent *devinfo;
+        while ((devinfo = readdir(js_dir)) != nullptr)
+        {      
+            int fd;
+            struct libevdev *dev;
+            char buffer[30];
+            const char *devUniqueID;
+
+            if (!strstr(devinfo->d_name, "event"))
                 continue;
-            
-            curDevUniqueID = libevdev_get_phys((struct libevdev *) pair.second.os_obj);
-            
-            if (devUniqueID && curDevUniqueID &&
-                (strcmp(devUniqueID, curDevUniqueID) == 0))
+
+            memset(buffer, 0, 30);
+            std::snprintf(buffer, 30, "/dev/input/%s", devinfo->d_name);
+
+            if ((fd = open(buffer, O_RDONLY)) < 0)
+                continue;
+
+            if (libevdev_new_from_fd(fd, &dev) < 0)
             {
-                // release old handle
-                libevdev_free((struct libevdev *) pair.second.os_obj);
-                
-                pair.second.os_obj = dev;
-                pair.second.alive = true;
-                this->connectedJoysticks++;
-                
-                // continue the overall loop
-                // but we're nested, so goto
-                goto enumerate_loop;
+                close(fd);
+                continue;
             }
+            
+            if (libevdev_get_id_vendor(dev) != JOYSTICK_VENDOR_ID ||
+                libevdev_get_id_product(dev) != JOYSTICK_PRODUCT_ID)
+            {
+                libevdev_free(dev);
+                close(fd);
+                continue;
+            }
+            
+            // check for device was previously connected
+            devUniqueID = libevdev_get_phys(dev);
+            for (auto& pair : this->jsMap)
+            {
+                const char *curDevUniqueID;
+                
+                curDevUniqueID = libevdev_get_phys((struct libevdev *) pair.second.os_obj);
+                
+                if (devUniqueID && curDevUniqueID &&
+                    (strcmp(devUniqueID, curDevUniqueID) == 0))
+                {
+                    if (pair.second.alive)
+                    {
+                        libevdev_free(dev);
+                        goto enumerate_loop;
+                    }
+
+                    // release old handle
+                    libevdev_free((struct libevdev *) pair.second.os_obj);
+                    
+                    pair.second.os_obj = dev;
+                    pair.second.alive = true;
+                    this->connectedJoysticks++;
+                    
+                    // continue the overall loop
+                    // but we're nested, so goto
+                    goto enumerate_loop;
+                }
+            }
+
+            // configuration successful - add to map
+            this->jsMap[this->nextJoystickID] = { };
+            this->jsMap[this->nextJoystickID].alive = true;
+            this->jsMap[this->nextJoystickID].os_obj = dev;
+
+            this->nextJoystickID++;
+            this->connectedJoysticks++;
         }
-
-        // configuration successful - add to map
-        this->jsMap[this->nextJoystickID] = { };
-        this->jsMap[this->nextJoystickID].alive = true;
-        this->jsMap[this->nextJoystickID].os_obj = dev;
-
-        this->nextJoystickID++;
-        this->connectedJoysticks++;
+        
+        closedir(js_dir);
     }
-    
-    closedir(js_dir);
 }
