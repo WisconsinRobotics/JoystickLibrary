@@ -411,6 +411,15 @@ bool JoystickService::GetSlider(int joystickID, Int32% slider)
     return true;
 }
 
+bool JoystickService::GetButton(int joystickID, Button button, Boolean% buttonVal)
+{
+    if (!this->initialized || !IsValidJoystickID(joystickID))
+        return false;
+
+    buttonVal = jsMap[joystickID].buttons[(int) button];
+    return true;
+}
+
 bool JoystickService::GetButtons(int joystickID, array<bool>^% buttons)
 {
     if (!this->initialized || !IsValidJoystickID(joystickID))

@@ -158,6 +158,15 @@ namespace JoystickLibrary
          */
         bool GetSlider(int joystickID, Int32% slider);
 
+       /**
+         * Gets the button state of the specified joystick ID and button.
+         * @param joystickID the joystick ID
+         * @param button the specific button to query
+         * @param buttonVal A reference in which to save the value. Will not be modified if call fails. 
+         * @return false if invalid joystickID, disconnected joystick, or button not pressed, true otherwise.
+         */
+        bool GetButton(int joystickID, Button button, Boolean% buttonVal);
+        
         /**
           Gets the button state of the specified joystick ID.
           @param joystickID the joystick ID
