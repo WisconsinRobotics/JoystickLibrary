@@ -60,8 +60,12 @@ static int NormalizeAxisValue(int val, int min, int max)
 JoystickService::~JoystickService(void)
 {
     this->jsPollerStop = true;
-    this->jsPoller.join();
-    enumerateThread.join();    
+    
+    if (this->jsPoller.joinable())
+        this->jsPoller.join();
+    
+    if (enumerateThread.joinable())
+        enumerateThread.join();
 
     for (auto pair : jsMap)
     {

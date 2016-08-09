@@ -206,7 +206,9 @@ JoystickService::JoystickService(int number_joysticks)
 JoystickService::~JoystickService(void)
 {
     this->jsPollerStop = true;
-    this->jsPoller->Join();
+
+    if (this->jsPoller->IsAlive)
+        this->jsPoller->Join();
 
     for (auto& pair : jsMap)
     {

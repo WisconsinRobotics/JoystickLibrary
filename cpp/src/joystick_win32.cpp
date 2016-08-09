@@ -198,7 +198,9 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 JoystickService::~JoystickService(void)
 {
     this->jsPollerStop = true;
-    this->jsPoller.join();
+    
+    if (this->jsPoller.joinable())
+        this->jsPoller.join();  
     
     for (auto& pair : this->jsMap)
     {
