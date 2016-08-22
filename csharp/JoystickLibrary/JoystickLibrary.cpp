@@ -50,7 +50,7 @@ struct JoystickData
     int y;
     int rz;
     int slider;
-    std::array<bool, NUMBER_BUTTONS> buttons;
+    std::array<bool, JoystickService::NUMBER_BUTTONS> buttons;
     POV pov;
 
     LPDIRECTINPUTDEVICE8 os_obj;
@@ -166,7 +166,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JOYSTICK_PRODUCT_ID)
+    if (LOWORD(dipdw.dwData) != JoystickService::JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JoystickService::JOYSTICK_PRODUCT_ID)
     {
         joystick->Release();
         return DIENUM_CONTINUE;

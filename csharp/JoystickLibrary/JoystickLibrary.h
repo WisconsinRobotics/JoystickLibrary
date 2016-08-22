@@ -35,9 +35,6 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
-#define NUMBER_BUTTONS 12
-#define JOYSTICK_VENDOR_ID 0x46D
-#define JOYSTICK_PRODUCT_ID 0xC215 
 
 using namespace System;
 using namespace System::Collections::Generic;
@@ -87,6 +84,10 @@ namespace JoystickLibrary
     public ref class JoystickService
     {
     public:
+        static const int NUMBER_BUTTONS = 12;
+        static const int JOYSTICK_VENDOR_ID = 0x46D;
+        static const int JOYSTICK_PRODUCT_ID = 0xC215;
+
         /**
          Constructs a new JoystickService instance with the specified number of joysticks.
          @param number_joysticks Number of joysticks to enumerate

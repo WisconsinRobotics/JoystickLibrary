@@ -65,7 +65,7 @@ namespace JoystickLibraryTester
 
         static void PrintButtons(JoystickService s, int id)
         {
-            bool[] buttons = new bool[12];
+            bool[] buttons = new bool[JoystickService.NUMBER_BUTTONS];
 
             if (!s.GetButtons(id, ref buttons))
                 for (int i = 0; i < 12; i++)

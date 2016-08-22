@@ -67,11 +67,11 @@ void PrintAbsoluteAxes(JoystickService& s, int id)
 
 void PrintButtons(JoystickService& s, int id)
 {
-    std::array<bool, 12> buttons;
+    std::array<bool, NUMBER_BUTTONS> buttons;
     if (!s.GetButtons(id, buttons))
         std::fill(buttons.begin(), buttons.end(), false);
 
-    for (int i = 0; i < 12; i++)
+    for (int i = 0; i < NUMBER_BUTTONS; i++)
         std::cout << i << ": " << buttons[i] << " | ";
     std::cout << std::endl;
 }
