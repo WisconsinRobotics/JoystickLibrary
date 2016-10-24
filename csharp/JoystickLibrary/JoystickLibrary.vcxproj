@@ -126,9 +126,11 @@
     <ClInclude Include="JoystickLibrary.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Extreme3DProService.cpp" />
     <ClCompile Include="JoystickLibrary.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="Xbox360Service.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

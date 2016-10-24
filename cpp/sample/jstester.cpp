@@ -65,8 +65,8 @@ int main(int argc, char *argv[])
         for (int i : ids)
         {
             std::cout << "[" << i << "] ";
-            s->PrintAbsoluteAxes(i);
-            //s->PrintButtons(i);
+            //s->PrintAbsoluteAxes(i);
+            s->PrintButtons(i);
             //s->PrintDpad(i);
         }
 

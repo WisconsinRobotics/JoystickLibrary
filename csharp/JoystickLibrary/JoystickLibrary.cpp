@@ -43,24 +43,17 @@ const std::array<POV, 8> povList = {
     POV::POV_NORTHWEST,
 };
 
-struct JoystickData
+struct EnumerateContext
 {
-    bool alive;
-    int x;
-    int y;
-    int rz;
-    int slider;
-    std::array<bool, JoystickService::NUMBER_BUTTONS> buttons;
-    POV pov;
-
-    LPDIRECTINPUTDEVICE8 os_obj;
+    int *nextJoystickID;
+    int *requestedJoysticks;
+    int *connectedJoysticks;
+    int *vendor_id;
+    int *product_id;
+    std::map<int, JoystickData> *jsMap;
+    LPDIRECTINPUT8 di;
 };
 
-LPDIRECTINPUT8 di;
-std::map<int, JoystickData> jsMap;
-int requestedJoysticks;
-int connectedJoysticks;
-int nextJoystickID;
 
 /**
  Callback to configure the axis values on the joystick.
@@ -100,10 +93,11 @@ static BOOL CALLBACK JoystickConfigCallback(const DIDEVICEOBJECTINSTANCE *instan
  */
 static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *context)
 {
+    EnumerateContext *info = (EnumerateContext *) context;
     LPDIRECTINPUTDEVICE8 joystick;
     DIPROPDWORD dipdw;
 
-    if (connectedJoysticks >= requestedJoysticks)
+    if (info->connectedJoysticks >= info->requestedJoysticks)
         return DIENUM_STOP;
 
     DIPROPGUIDANDPATH jsGuidPath;
@@ -112,7 +106,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
     jsGuidPath.diph.dwHow = DIPH_DEVICE;
     jsGuidPath.diph.dwObj = 0;
 
-    if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
+    if (FAILED(info->di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
         return DIENUM_CONTINUE;
 
     if (FAILED(joystick->GetProperty(DIPROP_GUIDANDPATH, &jsGuidPath.diph)))
@@ -122,22 +116,22 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
     }
 
     // check if joystick was a formerly removed one
-    for (auto& pair : jsMap)
+    for (auto& pair : *(info->jsMap))
     {
-        DIPROPGUIDANDPATH info;
+        DIPROPGUIDANDPATH hw_info;
         LPDIRECTINPUTDEVICE8 inactiveJoystick;
 
         inactiveJoystick = (LPDIRECTINPUTDEVICE8)pair.second.os_obj;
-        info.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
-        info.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-        info.diph.dwHow = DIPH_DEVICE;
-        info.diph.dwObj = 0;
+        hw_info.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+        hw_info.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+        hw_info.diph.dwHow = DIPH_DEVICE;
+        hw_info.diph.dwObj = 0;
 
-        if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &info.diph)))
+        if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &hw_info.diph)))
             continue;
 
         // path match
-        if (info.wszPath && jsGuidPath.wszPath && lstrcmp(info.wszPath, jsGuidPath.wszPath) == 0)
+        if (hw_info.wszPath && jsGuidPath.wszPath && lstrcmp(hw_info.wszPath, jsGuidPath.wszPath) == 0)
         {
             // if this path is already active, don't enumerate
             if (pair.second.alive)
@@ -148,7 +142,8 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
             pair.second.alive = true;
             inactiveJoystick->Acquire();
-            connectedJoysticks++;
+
+            *(info->connectedJoysticks)++;
             joystick->Release();
             return DIENUM_CONTINUE;
         }
@@ -166,7 +161,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != JoystickService::JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JoystickService::JOYSTICK_PRODUCT_ID)
+    if (LOWORD(dipdw.dwData) != *(info->vendor_id) || HIWORD(dipdw.dwData) != *(info->product_id))
     {
         joystick->Release();
         return DIENUM_CONTINUE;
@@ -183,11 +178,11 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
     // new joystick - add to map & acquire
     joystick->Acquire();
-    jsMap[nextJoystickID] = { };
-    jsMap[nextJoystickID].alive = true;
-    jsMap[nextJoystickID].os_obj = joystick;
-    nextJoystickID++;
-    connectedJoysticks++;
+    (*(info->jsMap))[*(info->nextJoystickID)] = { };
+    (*(info->jsMap))[*(info->nextJoystickID)].alive = true;
+    (*(info->jsMap))[*(info->nextJoystickID)].os_obj = joystick;
+    *(info->nextJoystickID)++;
+    *(info->connectedJoysticks)++;
 
     return DIENUM_CONTINUE;
 }
@@ -199,32 +194,38 @@ JoystickService::JoystickService(int number_joysticks)
     nextJoystickID = 1;
     this->jsPollerStop = false;
     this->initialized = false;
-
+    this->jsMap = new std::map<int, JoystickData>();
     this->m_lock = gcnew Object();
 }
 
-JoystickService::~JoystickService(void)
+JoystickService::~JoystickService()
 {
     this->jsPollerStop = true;
 
     if (this->jsPoller->IsAlive)
         this->jsPoller->Join();
 
-    for (auto& pair : jsMap)
+    if (jsMap)
     {
-        LPDIRECTINPUTDEVICE8 js = (LPDIRECTINPUTDEVICE8)pair.second.os_obj;
-
-        if (js)
+        for (auto& pair : *jsMap)
         {
-            js->Unacquire();
-            js->Release();
+            LPDIRECTINPUTDEVICE8 js = (LPDIRECTINPUTDEVICE8)pair.second.os_obj;
+
+            if (js)
+            {
+                js->Unacquire();
+                js->Release();
+            }
         }
+
+        delete jsMap;
     }
+
     if (di)
         di->Release();
 }
 
-bool JoystickService::Initialize(void)
+bool JoystickService::Initialize()
 {
     HRESULT hr;
 
@@ -236,7 +237,7 @@ bool JoystickService::Initialize(void)
         GetModuleHandle(nullptr),
         DIRECTINPUT_VERSION,
         IID_IDirectInput8,
-        (void **)&di,
+        (LPVOID *) di,
         nullptr
     );
 
@@ -260,7 +261,9 @@ bool JoystickService::Start(void)
 
 bool JoystickService::IsValidJoystickID(int joystickID)
 {
-    return (jsMap.find(joystickID) != jsMap.end()) && jsMap[joystickID].alive;
+    return this->initialized && 
+        (jsMap->find(joystickID) != jsMap->end()) &&
+        jsMap->at(joystickID).alive;
 }
 
 bool JoystickService::RemoveJoystick(int joystickID)
@@ -270,14 +273,14 @@ bool JoystickService::RemoveJoystick(int joystickID)
 
     msclr::lock l(m_lock);
 
-    jsMap[joystickID].os_obj->Unacquire();
-    jsMap[joystickID].alive = false;
+    this->jsMap->at(joystickID).os_obj->Unacquire();
+    this->jsMap->at(joystickID).alive = false;
     connectedJoysticks--;
 
     return true;
 }
 
-void JoystickService::PollJoysticks(void)
+void JoystickService::PollJoysticks()
 {
     if (!this->initialized)
         return;
@@ -291,7 +294,7 @@ void JoystickService::PollJoysticks(void)
         msclr::lock l(m_lock);
         this->LocateJoysticks();
 
-        for (auto& pair : jsMap)
+        for (auto& pair : *jsMap)
         {
             if (!pair.second.alive)
                 continue;
@@ -330,115 +333,51 @@ void JoystickService::PollJoysticks(void)
                 continue;
             }
 
-            jsData.x = js.lX;
-            jsData.y = -js.lY; // y is backwards for some reason
-            jsData.rz = js.lRz;
-
-            // slider goes from -100 to 100, but it makes more sense from 0 -> 100.
-            // it's also backwards. The bottom part of the slider was 100, and the top -100.
-            // the formula below corrects this.
-            jsData.slider = (100 - js.rglSlider[0]) / 2;
-
-            // POV values are done in 45 deg segments (0 is up) * 100.
-            // i.e. straight right = 90 deg = 9000.
-            // determine POV value by way of lookup table (divide by 4500)
-            unsigned int povListIndex = js.rgdwPOV[0] / 4500;
-            jsData.pov = (povListIndex < povList.size()) ? povList[povListIndex] : POV::POV_NONE;
-
-            for (int i = 0; i < NUMBER_BUTTONS; i++)
-                jsData.buttons[i] = !!js.rgbButtons[i];
-
-            // joystick read complete
-            jsMap[pair.first] = jsData;
+            jsData.state = js;
         }
 
         Thread::Sleep(100);
     }
 }
 
-void JoystickService::LocateJoysticks(void)
+void JoystickService::LocateJoysticks()
 {
-    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, nullptr, DIEDFL_ATTACHEDONLY);
+    EnumerateContext context;
+
+    pin_ptr<int> p_connectedJoysticks = &this->connectedJoysticks;
+    pin_ptr<int> p_nextJoystickID = &this->nextJoystickID;
+    pin_ptr<int> p_product_id = &this->product_id;
+    pin_ptr<int> p_requestedJoysticks = &this->requestedJoysticks;
+    pin_ptr<int> p_vendor_id = &this->vendor_id;
+    
+    context.connectedJoysticks = p_connectedJoysticks;
+    context.jsMap = this->jsMap;
+    context.nextJoystickID = p_nextJoystickID;
+    context.product_id = p_product_id;
+    context.requestedJoysticks = p_requestedJoysticks;
+    context.vendor_id = p_vendor_id;
+    context.di = this->di;
+
+    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
 }
 
-List<int>^ JoystickService::GetJoystickIDs(void)
+List<int>^ JoystickService::GetJoystickIDs()
 {
     List<int>^ ids = gcnew List<int>();
 
-    for (auto& pair : jsMap)
+    for (auto& pair : *jsMap)
         if (pair.second.alive)
             ids->Add(pair.first);
 
     return ids;
 }
 
-int JoystickService::GetConnectedJoysticksCount(void)
+int JoystickService::GetConnectedJoysticksCount()
 {
     return connectedJoysticks;
 }
 
-bool JoystickService::GetX(int joystickID, Int32% x)
+DIJOYSTATE JoystickService::GetState(int joystickID)
 {
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    x = jsMap[joystickID].x;
-    return true;
-}
-
-bool JoystickService::GetY(int joystickID, Int32% y)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    y = jsMap[joystickID].y;
-    return true;
-}
-
-bool JoystickService::GetZRot(int joystickID, Int32% zRot)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    zRot = jsMap[joystickID].rz;
-    return true;
-}
-
-bool JoystickService::GetSlider(int joystickID, Int32% slider)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    slider = jsMap[joystickID].slider;
-    return true;
-}
-
-bool JoystickService::GetButton(int joystickID, Button button, Boolean% buttonVal)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    buttonVal = jsMap[joystickID].buttons[(int) button];
-    return true;
-}
-
-bool JoystickService::GetButtons(int joystickID, array<bool>^% buttons)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    buttons = gcnew array<bool>(NUMBER_BUTTONS);
-    for (int i = 0; i < NUMBER_BUTTONS; i++)
-        buttons[i] = jsMap[joystickID].alive && jsMap[joystickID].buttons[i];
-
-    return true;
-}
-
-bool JoystickService::GetPOV(int joystickID, POV% pov)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    pov = jsMap[joystickID].pov;
-    return true;
+    return (*(this->jsMap))[joystickID].state;
 }

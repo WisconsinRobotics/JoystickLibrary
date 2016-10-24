@@ -47,7 +47,7 @@ namespace JoystickLibraryTester
             { POV.POV_SOUTHEAST, "POV_SOUTHEAST" }
         };
 
-        static void PrintAbsoluteAxes(JoystickService s, int id)
+        static void PrintAbsoluteAxes(Extreme3DProService s, int id)
         {
             int x = 0, y = 0, z = 0, slider = 0;
 
@@ -63,9 +63,9 @@ namespace JoystickLibraryTester
             Console.WriteLine("X: {0} | Y: {1} | Z: {2} | Slider: {3}", x, y, z, slider);
         }
 
-        static void PrintButtons(JoystickService s, int id)
+        static void PrintButtons(Extreme3DProService s, int id)
         {
-            bool[] buttons = new bool[JoystickService.NUMBER_BUTTONS];
+            bool[] buttons = new bool[12];
 
             if (!s.GetButtons(id, ref buttons))
                 for (int i = 0; i < 12; i++)
@@ -76,7 +76,7 @@ namespace JoystickLibraryTester
             Console.WriteLine();
         }
 
-        static void PrintPOV(JoystickService s, int id)
+        static void PrintPOV(Extreme3DProService s, int id)
         {
             POV pov = POV.POV_NONE;
             if (!s.GetPOV(id, ref pov))
@@ -100,7 +100,7 @@ namespace JoystickLibraryTester
                 return;
             }
 
-            JoystickService s = new JoystickService(num_joysticks);
+            Extreme3DProService s = new Extreme3DProService(num_joysticks);
             if (!s.Initialize())
             {
                 Console.WriteLine("Failed to initialize!");

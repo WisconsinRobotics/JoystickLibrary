@@ -32,7 +32,7 @@
 using namespace JoystickLibrary;
 
 
-struct
+struct EnumerateContext
 {
     int *nextJoystickID;
     int *requestedJoysticks;
@@ -40,7 +40,7 @@ struct
     int *vendor_id;
     int *product_id;
     std::map<int, JoystickData> *jsMap;
-} EnumerateContext;
+};
 
 LPDIRECTINPUT8 di;
 
@@ -84,11 +84,9 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 {
     LPDIRECTINPUTDEVICE8 joystick;
     DIPROPDWORD dipdw;
+    EnumerateContext *enumerate_context = (EnumerateContext *)context;
 
-    // context is not used
-    UNREFERENCED_PARAMETER(context); 
-
-    if (*EnumerateContext.connectedJoysticks >= *EnumerateContext.requestedJoysticks)
+    if (*enumerate_context->connectedJoysticks >= *enumerate_context->requestedJoysticks)
         return DIENUM_STOP;
     
     if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
@@ -107,7 +105,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
     }
     
     // check if joystick was a formerly removed one
-    for (auto& pair : *EnumerateContext.jsMap)
+    for (auto& pair : *enumerate_context->jsMap)
     {
         DIPROPGUIDANDPATH info;
         LPDIRECTINPUTDEVICE8 inactiveJoystick;
@@ -133,7 +131,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
             pair.second.alive = true;
             inactiveJoystick->Acquire();
-            (*EnumerateContext.connectedJoysticks)++;
+            (*enumerate_context->connectedJoysticks)++;
             joystick->Release();
             return DIENUM_CONTINUE;
         }
@@ -151,7 +149,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != *EnumerateContext.vendor_id || HIWORD(dipdw.dwData) != *EnumerateContext.product_id)
+    if (LOWORD(dipdw.dwData) != *enumerate_context->vendor_id || HIWORD(dipdw.dwData) != *enumerate_context->product_id)
     {
         joystick->Release();
         return DIENUM_CONTINUE;
@@ -174,11 +172,11 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
     // new joystick - add to map & acquire
     joystick->Acquire();
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)] = { };
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)].alive = true;
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)].os_obj = joystick;
-    (*EnumerateContext.nextJoystickID)++;
-    (*EnumerateContext.connectedJoysticks)++;
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID] = { };
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID].alive = true;
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID].os_obj = joystick;
+    (*enumerate_context->nextJoystickID)++;
+    (*enumerate_context->connectedJoysticks)++;
 
     return DIENUM_CONTINUE;
 }
@@ -211,13 +209,6 @@ bool JoystickService::Initialize()
     if (this->initialized)
         return false;
 
-    EnumerateContext.connectedJoysticks = &this->connectedJoysticks;
-    EnumerateContext.nextJoystickID = &this->nextJoystickID;
-    EnumerateContext.requestedJoysticks = &this->requestedJoysticks;
-    EnumerateContext.product_id = &this->product_id;
-    EnumerateContext.vendor_id = &this->vendor_id;
-    EnumerateContext.jsMap = &this->jsMap;
-    
     // initialize directinput
     hr = DirectInput8Create(
             GetModuleHandle(nullptr),
@@ -317,5 +308,13 @@ void JoystickService::PollJoysticks()
 
 void JoystickService::LocateJoysticks()
 {
-    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, nullptr, DIEDFL_ATTACHEDONLY);
+    EnumerateContext context;
+    context.connectedJoysticks = &this->connectedJoysticks;
+    context.nextJoystickID = &this->nextJoystickID;
+    context.requestedJoysticks = &this->requestedJoysticks;
+    context.product_id = &this->product_id;
+    context.vendor_id = &this->vendor_id;
+    context.jsMap = &this->jsMap;
+
+    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
 }
