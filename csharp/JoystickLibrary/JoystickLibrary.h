@@ -159,7 +159,7 @@ namespace JoystickLibrary
         System::Boolean initialized;
     };
 
-    enum class Extreme3DProButton : int
+    public enum class Extreme3DProButton : int
     {
         Trigger = 0,
         Button2 = 1,
@@ -246,7 +246,7 @@ namespace JoystickLibrary
         bool GetPOV(int joystickID, POV% pov);
     };
 
-    enum class Xbox360Button : int
+    public enum class Xbox360Button : int
     {
         A = 0,
         B = 1,
