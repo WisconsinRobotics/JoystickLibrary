@@ -148,13 +148,13 @@ namespace JoystickLibrary
         Thread^ jsPoller;
         Object^ m_lock;
 
-        LPDIRECTINPUT8 di;
+        LPDIRECTINPUT8 *di;
         std::map<int, JoystickData> *jsMap;
-        System::Int32 requestedJoysticks;
-        System::Int32 connectedJoysticks;
-        System::Int32 nextJoystickID;
-        System::Int32 product_id;
-        System::Int32 vendor_id;
+        int requestedJoysticks;
+        int connectedJoysticks;
+        int nextJoystickID;
+        int product_id;
+        int vendor_id;
         System::Boolean jsPollerStop;
         System::Boolean initialized;
     };

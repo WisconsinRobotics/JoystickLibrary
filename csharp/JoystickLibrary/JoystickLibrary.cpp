@@ -45,11 +45,11 @@ const std::array<POV, 8> povList = {
 
 struct EnumerateContext
 {
-    int *nextJoystickID;
-    int *requestedJoysticks;
-    int *connectedJoysticks;
-    int *vendor_id;
-    int *product_id;
+    int nextJoystickID;
+    int requestedJoysticks;
+    int connectedJoysticks;
+    int vendor_id;
+    int product_id;
     std::map<int, JoystickData> *jsMap;
     LPDIRECTINPUT8 di;
 };
@@ -143,7 +143,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
             pair.second.alive = true;
             inactiveJoystick->Acquire();
 
-            *(info->connectedJoysticks)++;
+            info->connectedJoysticks++;
             joystick->Release();
             return DIENUM_CONTINUE;
         }
@@ -161,7 +161,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != *(info->vendor_id) || HIWORD(dipdw.dwData) != *(info->product_id))
+    if (LOWORD(dipdw.dwData) != info->vendor_id || HIWORD(dipdw.dwData) != info->product_id)
     {
         joystick->Release();
         return DIENUM_CONTINUE;
@@ -178,24 +178,33 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
     // new joystick - add to map & acquire
     joystick->Acquire();
-    (*(info->jsMap))[*(info->nextJoystickID)] = { };
-    (*(info->jsMap))[*(info->nextJoystickID)].alive = true;
-    (*(info->jsMap))[*(info->nextJoystickID)].os_obj = joystick;
-    *(info->nextJoystickID)++;
-    *(info->connectedJoysticks)++;
+    (*(info->jsMap))[(info->nextJoystickID)] = { };
+    (*(info->jsMap))[(info->nextJoystickID)].alive = true;
+    (*(info->jsMap))[(info->nextJoystickID)].os_obj = joystick;
+    info->nextJoystickID++;
+    info->connectedJoysticks++;
 
     return DIENUM_CONTINUE;
 }
 
 JoystickService::JoystickService(int number_joysticks)
 {
-    requestedJoysticks = number_joysticks;
-    connectedJoysticks = 0;
-    nextJoystickID = 1;
+/*
+    this->requestedJoysticks = new int;
+    this->connectedJoysticks = new int;
+    this->nextJoystickID = new int;
+    this->product_id = new int;
+    this->vendor_id = new int;
+*/
+    this->requestedJoysticks = number_joysticks;
+    this->connectedJoysticks = 0;
+    this->nextJoystickID = 1;
+
     this->jsPollerStop = false;
     this->initialized = false;
     this->jsMap = new std::map<int, JoystickData>();
     this->m_lock = gcnew Object();
+    this->di = new LPDIRECTINPUT8W;
 }
 
 JoystickService::~JoystickService()
@@ -222,7 +231,27 @@ JoystickService::~JoystickService()
     }
 
     if (di)
-        di->Release();
+    {
+        (*di)->Release();
+        delete di;
+    }
+
+    /*
+    if (this->requestedJoysticks)
+        delete this->requestedJoysticks;
+
+    if (this->connectedJoysticks)
+        delete this->connectedJoysticks;
+
+    if (this->nextJoystickID)
+        delete this->nextJoystickID;
+
+    if (this->product_id)
+        delete product_id;
+
+    if (this->vendor_id)
+        delete vendor_id;
+    */
 }
 
 bool JoystickService::Initialize()
@@ -343,22 +372,19 @@ void JoystickService::PollJoysticks()
 void JoystickService::LocateJoysticks()
 {
     EnumerateContext context;
-
-    pin_ptr<int> p_connectedJoysticks = &this->connectedJoysticks;
-    pin_ptr<int> p_nextJoystickID = &this->nextJoystickID;
-    pin_ptr<int> p_product_id = &this->product_id;
-    pin_ptr<int> p_requestedJoysticks = &this->requestedJoysticks;
-    pin_ptr<int> p_vendor_id = &this->vendor_id;
     
-    context.connectedJoysticks = p_connectedJoysticks;
+    context.connectedJoysticks = this->connectedJoysticks;
     context.jsMap = this->jsMap;
-    context.nextJoystickID = p_nextJoystickID;
-    context.product_id = p_product_id;
-    context.requestedJoysticks = p_requestedJoysticks;
-    context.vendor_id = p_vendor_id;
-    context.di = this->di;
+    context.nextJoystickID = this->nextJoystickID;
+    context.product_id = this->product_id;
+    context.requestedJoysticks = this->requestedJoysticks;
+    context.vendor_id = this->vendor_id;
+    context.di = *this->di;
 
-    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
+    (*di)->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
+    
+    this->connectedJoysticks = context.connectedJoysticks;
+    this->nextJoystickID = context.nextJoystickID;
 }
 
 List<int>^ JoystickService::GetJoystickIDs()
@@ -374,7 +400,7 @@ List<int>^ JoystickService::GetJoystickIDs()
 
 int JoystickService::GetConnectedJoysticksCount()
 {
-    return connectedJoysticks;
+    return this->connectedJoysticks;
 }
 
 DIJOYSTATE JoystickService::GetState(int joystickID)

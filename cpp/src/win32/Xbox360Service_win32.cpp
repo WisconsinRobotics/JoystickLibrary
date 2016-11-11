@@ -6,6 +6,9 @@ constexpr int XBOX360_VENDOR_ID = 0x045E;
 constexpr int XBOX360_PRODUCT_ID = 0x028E;
 constexpr int NUMBER_BUTTONS = 11;
 
+// 291,  is the wireless receiver
+// 2A1 is the wired controller
+
 
 Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
 {

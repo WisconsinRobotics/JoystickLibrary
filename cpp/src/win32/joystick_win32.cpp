@@ -119,16 +119,16 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &info.diph)))
             continue;
         
+        // if this path is already active, don't enumerate
+        if (pair.second.alive)
+        {
+            joystick->Release();
+            return DIENUM_CONTINUE;
+        }
+
         // path match
         if (info.wszPath && jsGuidPath.wszPath && lstrcmp(info.wszPath, jsGuidPath.wszPath) == 0)
         {
-            // if this path is already active, don't enumerate
-            if (pair.second.alive)
-            {
-                joystick->Release();
-                return DIENUM_CONTINUE;
-            }
-
             pair.second.alive = true;
             inactiveJoystick->Acquire();
             (*enumerate_context->connectedJoysticks)++;
