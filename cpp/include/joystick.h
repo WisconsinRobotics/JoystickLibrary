@@ -162,7 +162,7 @@ namespace JoystickLibrary
         #ifdef __linux__
         int NormalizeAxisValue(int val, int min, int max)
         {
-            return (int) ((200.0 / (max - min)) * (val) - 100);
+            return (int) ((200.0 / (max - min)) * (val) - 100 * ((max + min) / (max - min)));
         }
         #endif
 

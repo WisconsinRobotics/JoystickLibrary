@@ -5,11 +5,11 @@ using namespace JoystickLibrary;
 constexpr int XBOX360_VENDOR_ID = 0x045E;
 constexpr int XBOX360_PRODUCT_ID = 0x028E;
 constexpr int NUMBER_BUTTONS = 11;
-constexpr int X_MIN = 0;
-constexpr int X_MAX = 1023;
-constexpr int Y_MIN = 0;
-constexpr int Y_MAX = 1023;
-constexpr int TRIGGER_MIN = 0;
+constexpr int X_MIN = -32768;
+constexpr int X_MAX = 32767;
+constexpr int Y_MIN = -32768;
+constexpr int Y_MAX = 32767;
+constexpr int TRIGGER_MIN = -255;
 constexpr int TRIGGER_MAX = 255;
 
 Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
