@@ -2,8 +2,6 @@
 
 using namespace JoystickLibrary;
 
-constexpr int LOGITECH_VENDOR_ID = 0x46D;
-constexpr int LOGITECH_EXTREME_3D_PRO_PRODUCT_ID = 0xC215;
 constexpr int NUMBER_BUTTONS = 12;
 constexpr int X_MIN = 0;
 constexpr int X_MAX = 1023;
@@ -17,8 +15,9 @@ constexpr int SLIDER_MAX = 0;
 
 Extreme3DProService::Extreme3DProService(int number_joysticks) : JoystickService(number_joysticks)
 {
-    this->vendor_id = LOGITECH_VENDOR_ID;
-    this->product_id = LOGITECH_EXTREME_3D_PRO_PRODUCT_ID;
+    this->valid_devices = {
+        { 0x46D, 0xC215 }
+    };
 }
 
 Extreme3DProService::~Extreme3DProService()

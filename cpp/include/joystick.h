@@ -28,6 +28,7 @@
 #pragma once
 
 #ifdef _WIN32
+    #define DIRECTINPUT_VERSION 0x0800
     #include <dinput.h>
     #include <windows.h>
 
@@ -66,6 +67,12 @@ namespace JoystickLibrary
         POV_NORTHEAST = POV_NORTH | POV_EAST,       /**< POV hat is facing up and right.     */
         POV_SOUTHWEST = POV_SOUTH | POV_WEST,       /**< POV hat is facing south and left.   */
         POV_SOUTHEAST = POV_SOUTH | POV_EAST        /**< POV hat is facing south and right.  */
+    };
+
+    struct JoystickDescriptor
+    {
+        int vendor_id;
+        int product_id;
     };
 
     #ifdef _WIN32
@@ -128,7 +135,7 @@ namespace JoystickLibrary
          * @return true on success, false otherwise
          */
         bool Start();
-        
+
         /**
          * Removes the specified joystick ID.
          * @param joystickID the joystick ID
@@ -145,7 +152,6 @@ namespace JoystickLibrary
         */
         bool IsValidJoystickID(int joystickID);
         JoystickState GetState(int joystickID);
-
 
         #ifdef _WIN32
         const std::array<POV, 8> povList = {
@@ -167,8 +173,7 @@ namespace JoystickLibrary
         #endif
 
         std::map<int, JoystickData> jsMap;
-        int vendor_id;
-        int product_id;
+        std::vector<JoystickDescriptor> valid_devices;
 
     private:
 

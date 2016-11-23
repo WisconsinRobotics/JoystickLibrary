@@ -158,6 +158,7 @@ void JoystickService::LocateJoysticks(void)
             struct libevdev *dev;
             char buffer[30];
             const char *devUniqueID;
+            bool device_match_found;
 
             if (!strstr(devinfo->d_name, "event"))
                 continue;
@@ -174,8 +175,17 @@ void JoystickService::LocateJoysticks(void)
                 continue;
             }
             
-            if (libevdev_get_id_vendor(dev) != this->vendor_id ||
-                libevdev_get_id_product(dev) != this->product_id)
+            device_match_found = false;
+            for (auto& device : this->valid_devices)
+            {
+                if (libevdev_get_id_vendor(dev) == device.vendor_id && libevdev_get_id_product(dev) == device.product_id)
+                {
+                    device_match_found = true;
+                    break;
+                }
+            }
+            
+            if (!device_match_found)
             {
                 libevdev_free(dev);
                 close(fd);

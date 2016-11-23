@@ -2,18 +2,15 @@
 
 using namespace JoystickLibrary;
 
-constexpr int XBOX360_VENDOR_ID = 0x045E;
-constexpr int XBOX360_PRODUCT_ID = 0x028E;
 constexpr int NUMBER_BUTTONS = 11;
-
-// 291,  is the wireless receiver
-// 2A1 is the wired controller
 
 
 Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
 {
-    this->product_id = XBOX360_PRODUCT_ID;
-    this->vendor_id = XBOX360_VENDOR_ID;
+    this->valid_devices = {
+        { 0x045E, 0x028E },
+        { 0x045E, 0x0291 }
+    };
 }
 
 Xbox360Service::~Xbox360Service()

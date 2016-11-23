@@ -27,7 +27,10 @@
 
 #pragma once
 
+#define DIRECTINPUT_VERSION 0x0800
+
 #include <map>
+#include <vector>
 #include <dinput.h>
 #include <windows.h>
 #include <msclr\lock.h>
@@ -63,6 +66,12 @@ namespace JoystickLibrary
         bool alive;
         DIJOYSTATE state;
         LPDIRECTINPUTDEVICE8 os_obj;
+    };
+
+    struct JoystickDescriptor
+    {
+        int vendor_id;
+        int product_id;
     };
 
     /*
@@ -150,11 +159,10 @@ namespace JoystickLibrary
 
         LPDIRECTINPUT8 *di;
         std::map<int, JoystickData> *jsMap;
+        std::vector<JoystickDescriptor> *valid_devices;
         int requestedJoysticks;
         int connectedJoysticks;
         int nextJoystickID;
-        int product_id;
-        int vendor_id;
         System::Boolean jsPollerStop;
         System::Boolean initialized;
     };

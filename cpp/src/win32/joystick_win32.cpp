@@ -37,8 +37,7 @@ struct EnumerateContext
     int *nextJoystickID;
     int *requestedJoysticks;
     int *connectedJoysticks;
-    int *vendor_id;
-    int *product_id;
+    const std::vector<JoystickDescriptor> *valid_devices;
     std::map<int, JoystickData> *jsMap;
 };
 
@@ -103,7 +102,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         joystick->Release();
         return DIENUM_CONTINUE;
     }
-    
+
     // check if joystick was a formerly removed one
     for (auto& pair : *enumerate_context->jsMap)
     {
@@ -149,7 +148,18 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != *enumerate_context->vendor_id || HIWORD(dipdw.dwData) != *enumerate_context->product_id)
+    // check if the device found matches the device ID whitelist
+    bool device_match_found = false;
+    for (auto& device : *(enumerate_context->valid_devices))
+    {
+        if (LOWORD(dipdw.dwData) == device.vendor_id && HIWORD(dipdw.dwData) == device.product_id)
+        {
+            device_match_found = true;
+            break;
+        }
+    }
+
+    if (!device_match_found)
     {
         joystick->Release();
         return DIENUM_CONTINUE;
@@ -312,8 +322,7 @@ void JoystickService::LocateJoysticks()
     context.connectedJoysticks = &this->connectedJoysticks;
     context.nextJoystickID = &this->nextJoystickID;
     context.requestedJoysticks = &this->requestedJoysticks;
-    context.product_id = &this->product_id;
-    context.vendor_id = &this->vendor_id;
+    context.valid_devices = &this->valid_devices;
     context.jsMap = &this->jsMap;
 
     di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
