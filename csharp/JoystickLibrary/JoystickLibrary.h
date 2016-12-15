@@ -25,9 +25,12 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 #pragma once
 
+#define DIRECTINPUT_VERSION 0x0800
+
+#include <map>
+#include <vector>
 #include <dinput.h>
 #include <windows.h>
 #include <msclr\lock.h>
@@ -58,10 +61,113 @@ namespace JoystickLibrary
         POV_SOUTHEAST = POV_SOUTH | POV_EAST        /* POV hat is facing south and right.  */
     };
 
-    /**
-      Represents all of the available buttons on the joystick.
+    struct JoystickData
+    {
+        bool alive;
+        DIJOYSTATE state;
+        LPDIRECTINPUTDEVICE8 os_obj;
+    };
+
+    struct JoystickDescriptor
+    {
+        int vendor_id;
+        int product_id;
+    };
+
+    /*
+     The JoystickService class looks for, initializes, configures joysticks
+     and exposes its state to the user.
      */
-    public enum class Button : int
+    public ref class JoystickService abstract
+    {
+    public:
+
+        /**
+         Constructs a new JoystickService instance with the specified number of joysticks.
+         @param number_joysticks Number of joysticks to enumerate
+         */
+        JoystickService(int number_joysticks);
+        ~JoystickService();
+
+        /**
+         Initializes the JoystickService object.
+         This entails OS specific initialization, such as DirectInput bringup on Windows.
+         @return true on success, false otherwise
+         */
+        bool Initialize();
+
+        /**
+         Gets all connected joystick IDs.
+         @return A list containing all connected joystick IDs.
+         */
+        List<int>^ GetJoystickIDs();
+
+        /**
+         Gets the number of connected joysticks.
+         @return The number of connected joysticks.
+         */
+        int GetConnectedJoysticksCount();
+
+        /**
+         Starts the polling/enumeration thread.
+         @return true on success, false otherwise
+         */
+        bool Start();
+
+        /**
+          Removes the specified joystick ID.
+          @param joystickID the joystick ID
+          @return false if invalid joystickID, true otherwise.
+         */
+        bool RemoveJoystick(int joystickID);
+        
+    protected:
+
+        static array<POV>^ povList = {
+            POV::POV_NORTH,
+            POV::POV_NORTHEAST,
+            POV::POV_EAST,
+            POV::POV_SOUTHEAST,
+            POV::POV_SOUTH,
+            POV::POV_SOUTHWEST,
+            POV::POV_WEST,
+            POV::POV_NORTHWEST,
+        };
+
+        /**
+          Main polling and enumeration loop.
+         */
+        void PollJoysticks();
+
+        /**
+          Locates, enumerates, and configures connected joysticks.
+         */
+        void LocateJoysticks();
+
+        /**
+          Helper function to check if a joystickID is valid and whether or not
+          the joystick is connected.
+          @param joystickID the joystick ID to check
+          @return true if connected and valid, false otherwise
+         */
+        bool IsValidJoystickID(int);
+
+        DIJOYSTATE GetState(int joystickID);
+
+        Thread^ jsPoller;
+        Object^ m_lock;
+
+        LPDIRECTINPUT8 *di;
+        std::map<int, JoystickData> *jsMap;
+        std::vector<JoystickDescriptor> *valid_devices;
+        int requestedJoysticks;
+        int connectedJoysticks;
+        int nextJoystickID;
+        System::Boolean jsPollerStop;
+        System::Boolean initialized;
+    };
+
+    public enum class Extreme3DProButton : int
     {
         Trigger = 0,
         Button2 = 1,
@@ -77,143 +183,105 @@ namespace JoystickLibrary
         Button12 = 11
     };
 
-    /*
-     The JoystickService class looks for, initializes, configures joysticks
-     and exposes its state to the user.
-     */
-    public ref class JoystickService
+    public ref class Extreme3DProService : public JoystickService
     {
     public:
-        static const int NUMBER_BUTTONS = 12;
-        static const int JOYSTICK_VENDOR_ID = 0x46D;
-        static const int JOYSTICK_PRODUCT_ID = 0xC215;
+        Extreme3DProService(int number_joysticks);
+        ~Extreme3DProService();
 
         /**
-         Constructs a new JoystickService instance with the specified number of joysticks.
-         @param number_joysticks Number of joysticks to enumerate
-         */
-        JoystickService(int number_joysticks);
-        ~JoystickService(void);
-
-        /**
-         Initializes the JoystickService object.
-         This entails OS specific initialization, such as DirectInput bringup on Windows.
-         @return true on success, false otherwise
-         */
-        bool Initialize(void);
-
-        /**
-         Gets all connected joystick IDs.
-         @return A list containing all connected joystick IDs.
-         */
-        List<int>^ GetJoystickIDs(void);
-
-        /**
-         Gets the number of connected joysticks.
-         @return The number of connected joysticks.
-         */
-        int GetConnectedJoysticksCount(void);
-
-        /**
-         Starts the polling/enumeration thread.
-         @return true on success, false otherwise
-         */
-        bool Start(void);
-
-        /**
-         Gets the X axis value of the specified joystick ID.
-         Pulling to the left constitutes as negative with a min value of -100.
-         Pulling to the right is interpreted as positive with a max value of +100.
-         @param joystickID the joystick ID
-         @param x A reference in which to save the value. Will not be modified if call fails.
-         @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        Gets the X axis value of the specified joystick ID.
+        Pulling to the left constitutes as negative with a min value of -100.
+        Pulling to the right is interpreted as positive with a max value of +100.
+        @param joystickID the joystick ID
+        @param x A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetX(int joystickID, Int32% x);
 
         /**
-         Gets the Y axis value of the specified joystick ID.
-         Pushing forwards (away from you) constitutes as positive with a max value of +100.
-         Pushing backwards (towards you) constitutes as negative with a min value of -100.
-         @param joystickID the joystick ID
-         @param y A reference in which to save the value. Will not be modified if call fails.
-         @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        Gets the Y axis value of the specified joystick ID.
+        Pushing forwards (away from you) constitutes as positive with a max value of +100.
+        Pushing backwards (towards you) constitutes as negative with a min value of -100.
+        @param joystickID the joystick ID
+        @param y A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetY(int joystickID, Int32% y);
 
         /**
-         Gets the Z rotation axis value of the specified joystick ID.
-         Twisting counter clockwise constitutes as negative, with a min value of -100.
-         Twisting clockwise constitutes as positive, with a max value of +100.
-         @param joystickID the joystick ID
-         @param zRot A reference in which to save the value. Will not be modified if call fails.
-         @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        Gets the Z rotation axis value of the specified joystick ID.
+        Twisting counter clockwise constitutes as negative, with a min value of -100.
+        Twisting clockwise constitutes as positive, with a max value of +100.
+        @param joystickID the joystick ID
+        @param zRot A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetZRot(int joystickID, Int32% zRot);
 
         /**
-         Gets the slider value of the specified joystick ID.
-         The '-' marking on the slider is 0, and the "+" marking is 100.
-         @param joystickID the joystick ID
-         @param slider A reference in which to save the value. Will not be modified if call fails.
-         @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        Gets the slider value of the specified joystick ID.
+        The '-' marking on the slider is 0, and the "+" marking is 100.
+        @param joystickID the joystick ID
+        @param slider A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetSlider(int joystickID, Int32% slider);
 
-       /**
-         * Gets the button state of the specified joystick ID and button.
-         * @param joystickID the joystick ID
-         * @param button the specific button to query
-         * @param buttonVal A reference in which to save the value. Will not be modified if call fails. 
-         * @return false if invalid joystickID, disconnected joystick, or button not pressed, true otherwise.
-         */
-        bool GetButton(int joystickID, Button button, Boolean% buttonVal);
-        
         /**
-          Gets the button state of the specified joystick ID.
-          @param joystickID the joystick ID
-          @param buttons A reference in which to save the value. Will not be modified if call fails.
-          @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        * Gets the button state of the specified joystick ID and button.
+        * @param joystickID the joystick ID
+        * @param button the specific button to query
+        * @param buttonVal A reference in which to save the value. Will not be modified if call fails.
+        * @return false if invalid joystickID, disconnected joystick, or button not pressed, true otherwise.
+        */
+        bool GetButton(int joystickID, Extreme3DProButton button, Boolean% buttonVal);
+
+        /**
+        Gets the button state of the specified joystick ID.
+        @param joystickID the joystick ID
+        @param buttons A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetButtons(int joystickID, array<bool>^% buttons);
 
         /**
-         Gets the POV hat value of the specified joystick ID.
-         @param joystickID the joystick ID
-         @param pov A reference in which to save the value. Will not be modified if call fails.
-         @return false if invalid joystickID or disconnected joystick, true otherwise.
-         */
+        Gets the POV hat value of the specified joystick ID.
+        @param joystickID the joystick ID
+        @param pov A reference in which to save the value. Will not be modified if call fails.
+        @return false if invalid joystickID or disconnected joystick, true otherwise.
+        */
         bool GetPOV(int joystickID, POV% pov);
+    };
 
-        /**
-          Removes the specified joystick ID.
-          @param joystickID the joystick ID
-          @return false if invalid joystickID, true otherwise.
-         */
-        bool RemoveJoystick(int joystickID);
+    public enum class Xbox360Button : int
+    {
+        A = 0,
+        B = 1,
+        X = 2,
+        Y = 3,
+        LB = 4,
+        RB = 5,
+        Back = 6,
+        Start = 7,
+        LeftThumbstick = 8,
+        RightThumbstick = 9
+    };
 
-    private:
-        /**
-          Main polling and enumeration loop.
-         */
-        void PollJoysticks(void);
+    public ref class Xbox360Service : public JoystickService
+    {
+    public:
+        Xbox360Service(int number_joysticks);
+        ~Xbox360Service();
 
-        /**
-          Locates, enumerates, and configures connected joysticks.
-         */
-        void LocateJoysticks(void);
-
-        /**
-          Helper function to check if a joystickID is valid and whether or not
-          the joystick is connected.
-          @param joystickID the joystick ID to check
-          @return true if connected and valid, false otherwise
-         */
-        bool IsValidJoystickID(int);
-
-        Thread^ jsPoller;
-        Object^ m_lock;
-
-        bool jsPollerStop;
-        bool initialized;
+        bool GetLeftX(int joystickID, Int32% leftX);
+        bool GetLeftY(int joystickID, Int32% leftY);
+        bool GetRightX(int joystickID, Int32% rightX);
+        bool GetRightY(int joystickID, Int32% rightY);
+        bool GetLeftTrigger(int joystickID, Int32% leftTrigger);
+        bool GetRightTrigger(int joystickID, Int32% rightTrigger);
+        bool GetDpad(int joystickID, POV% dpad);
+        bool GetButton(int joystickID, Xbox360Button button, Boolean% buttonVal);
+        bool GetButtons(int joystickID, array<bool>^% buttons);
     };
 }

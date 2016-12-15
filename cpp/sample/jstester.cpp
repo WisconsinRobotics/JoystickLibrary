@@ -25,65 +25,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <cstdlib>
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <map>
-#include <string>
+#include "joystick.h"
+#include "ServiceTester.h"
 #include <memory>
 
-#include "joystick.h"
-
 using namespace JoystickLibrary;
-
-std::map<POV, std::string> povNameMap = {
-    { POV::POV_NONE, "POV_NONE" },
-    { POV::POV_WEST, "POV_WEST" },
-    { POV::POV_EAST, "POV_EAST" },
-    { POV::POV_NORTH, "POV_NORTH" },
-    { POV::POV_SOUTH, "POV_SOUTH" },
-    { POV::POV_NORTHWEST, "POV_NORTHWEST" },
-    { POV::POV_NORTHEAST, "POV_NORTHEAST" },
-    { POV::POV_SOUTHWEST, "POV_SOUTHWEST" },
-    { POV::POV_SOUTHEAST, "POV_SOUTHEAST" }
-};
-
-void PrintAbsoluteAxes(JoystickService& s, int id)
-{
-    int x, y, z, slider;
-
-    if (!s.GetX(id, x))
-        x = 0;
-    if (!s.GetY(id, y))
-        y = 0;    
-    if (!s.GetZRot(id, z))
-        z = 0;
-    if (!s.GetSlider(id, slider))
-        slider = 0;
-
-    std::cout << "X: " << x << " | Y: " << y << " | Z: " << z <<  " | Slider: " << slider << std::endl;
-}
-
-void PrintButtons(JoystickService& s, int id)
-{
-    std::array<bool, NUMBER_BUTTONS> buttons;
-    if (!s.GetButtons(id, buttons))
-        std::fill(buttons.begin(), buttons.end(), false);
-
-    for (int i = 0; i < NUMBER_BUTTONS; i++)
-        std::cout << i << ": " << buttons[i] << " | ";
-    std::cout << std::endl;
-}
-
-void PrintPOV(JoystickService& s, int id)
-{
-    POV pov;
-    if (!s.GetPOV(id, pov))
-        pov = POV::POV_NONE;
-
-    std::cout << "POV: " << povNameMap[pov] << std::endl;
-}
 
 int main(int argc, char *argv[])
 {
@@ -91,7 +37,7 @@ int main(int argc, char *argv[])
     {
         std::cout << "usage: " << argv[0] << " <number_joysticks>" << std::endl;
         return 1;
-    }
+    } 
 
     long int num_joysticks = strtol(argv[1], nullptr, 10);
     if (num_joysticks <= 0)
@@ -100,33 +46,28 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::unique_ptr<JoystickService> s(new JoystickService(num_joysticks));
-    if (!s->Initialize())
-    {
-        std::cout << "Failed to initialize!" << std::endl;
-        return 1;
-    }
-
+    //std::unique_ptr<Extreme3DProServiceTester> s(new Extreme3DProServiceTester(num_joysticks));
+    std::unique_ptr<Xbox360ServiceTester> s(new Xbox360ServiceTester(num_joysticks));
     if (!s->Start())
     {
-        std::cout << "Failed to start!" << std::endl;
+        std::cout << "Failed to start/init!" << std::endl;
         return 1;
     }
 
     std::cout << "Waiting for a joystick to be plugged in..." << std::endl;
-    while (s->GetConnectedJoysticksCount() < 1);
+    while (s->service->GetConnectedJoysticksCount() < 1);
     std::cout << "Found one - starting main loop." << std::endl;
 
     std::vector<int> ids;
     while (true)
     {
-        s->GetJoystickIDs(ids);
+        s->service->GetJoystickIDs(ids);
         for (int i : ids)
         {
             std::cout << "[" << i << "] ";
-            PrintAbsoluteAxes(*s, i);
-            //PrintButtons(*s, i);
-            //PrintPOV(*s, i); 
+            //s->PrintAbsoluteAxes(i);
+            s->PrintButtons(i);
+            //s->PrintDpad(i);
         }
 
         ids.clear();

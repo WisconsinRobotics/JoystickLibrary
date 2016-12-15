@@ -25,34 +25,21 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dinput.h>
-#include <windows.h>
 
+#include <array>
 #include "joystick.h"
-
-#pragma comment(lib, "dinput8.lib")
-#pragma comment(lib, "dxguid.lib")
 
 using namespace JoystickLibrary;
 
-const std::array<POV, 8> povList = {
-    POV::POV_NORTH,
-    POV::POV_NORTHEAST,
-    POV::POV_EAST,
-    POV::POV_SOUTHEAST,
-    POV::POV_SOUTH,
-    POV::POV_SOUTHWEST,
-    POV::POV_WEST,
-    POV::POV_NORTHWEST,
-};
 
-struct
+struct EnumerateContext
 {
     int *nextJoystickID;
-    int *connectedJoysticks;
     int *requestedJoysticks;
+    int *connectedJoysticks;
+    const std::vector<JoystickDescriptor> *valid_devices;
     std::map<int, JoystickData> *jsMap;
-} EnumerateContext;
+};
 
 LPDIRECTINPUT8 di;
 
@@ -96,11 +83,9 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 {
     LPDIRECTINPUTDEVICE8 joystick;
     DIPROPDWORD dipdw;
+    EnumerateContext *enumerate_context = (EnumerateContext *)context;
 
-    // context is not used
-    UNREFERENCED_PARAMETER(context); 
-
-    if (*EnumerateContext.connectedJoysticks >= *EnumerateContext.requestedJoysticks)
+    if (*enumerate_context->connectedJoysticks >= *enumerate_context->requestedJoysticks)
         return DIENUM_STOP;
     
     if (FAILED(di->CreateDevice(instance->guidInstance, &joystick, nullptr)))
@@ -117,9 +102,9 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         joystick->Release();
         return DIENUM_CONTINUE;
     }
-    
+
     // check if joystick was a formerly removed one
-    for (auto& pair : *EnumerateContext.jsMap)
+    for (auto& pair : *enumerate_context->jsMap)
     {
         DIPROPGUIDANDPATH info;
         LPDIRECTINPUTDEVICE8 inactiveJoystick;
@@ -133,19 +118,19 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         if (FAILED(inactiveJoystick->GetProperty(DIPROP_GUIDANDPATH, &info.diph)))
             continue;
         
+        // if this path is already active, don't enumerate
+        if (pair.second.alive)
+        {
+            joystick->Release();
+            return DIENUM_CONTINUE;
+        }
+
         // path match
         if (info.wszPath && jsGuidPath.wszPath && lstrcmp(info.wszPath, jsGuidPath.wszPath) == 0)
         {
-            // if this path is already active, don't enumerate
-            if (pair.second.alive)
-            {
-                joystick->Release();
-                return DIENUM_CONTINUE;
-            }
-
             pair.second.alive = true;
             inactiveJoystick->Acquire();
-            (*EnumerateContext.connectedJoysticks)++;
+            (*enumerate_context->connectedJoysticks)++;
             joystick->Release();
             return DIENUM_CONTINUE;
         }
@@ -163,7 +148,18 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
         return DIENUM_CONTINUE;
     }
 
-    if (LOWORD(dipdw.dwData) != JOYSTICK_VENDOR_ID || HIWORD(dipdw.dwData) != JOYSTICK_PRODUCT_ID)
+    // check if the device found matches the device ID whitelist
+    bool device_match_found = false;
+    for (auto& device : *(enumerate_context->valid_devices))
+    {
+        if (LOWORD(dipdw.dwData) == device.vendor_id && HIWORD(dipdw.dwData) == device.product_id)
+        {
+            device_match_found = true;
+            break;
+        }
+    }
+
+    if (!device_match_found)
     {
         joystick->Release();
         return DIENUM_CONTINUE;
@@ -186,16 +182,16 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
     // new joystick - add to map & acquire
     joystick->Acquire();
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)] = { };
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)].alive = true;
-    (*EnumerateContext.jsMap)[*(EnumerateContext.nextJoystickID)].os_obj = joystick;
-    (*EnumerateContext.nextJoystickID)++;
-    (*EnumerateContext.connectedJoysticks)++;
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID] = { };
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID].alive = true;
+    (*enumerate_context->jsMap)[*enumerate_context->nextJoystickID].os_obj = joystick;
+    (*enumerate_context->nextJoystickID)++;
+    (*enumerate_context->connectedJoysticks)++;
 
     return DIENUM_CONTINUE;
 }
 
-JoystickService::~JoystickService(void)
+JoystickService::~JoystickService()
 {
     this->jsPollerStop = true;
     
@@ -216,18 +212,13 @@ JoystickService::~JoystickService(void)
         di->Release();
 }
 
-bool JoystickService::Initialize(void)
+bool JoystickService::Initialize()
 {
     HRESULT hr;
     
     if (this->initialized)
         return false;
 
-    EnumerateContext.connectedJoysticks = &this->connectedJoysticks;
-    EnumerateContext.nextJoystickID = &this->nextJoystickID;
-    EnumerateContext.requestedJoysticks = &this->requestedJoysticks;
-    EnumerateContext.jsMap = &this->jsMap;
-    
     // initialize directinput
     hr = DirectInput8Create(
             GetModuleHandle(nullptr),
@@ -261,7 +252,7 @@ bool JoystickService::RemoveJoystick(int joystickID)
     return true;
 }
 
-void JoystickService::PollJoysticks(void)
+void JoystickService::PollJoysticks()
 {
     if (!this->initialized)
         return;
@@ -315,26 +306,8 @@ void JoystickService::PollJoysticks(void)
                 continue;
             }
 
-            jsData.x = js.lX;
-            jsData.y = -js.lY; // y is backwards for some reason
-            jsData.rz = js.lRz;
-            
-            // slider goes from -100 to 100, but it makes more sense from 0 -> 100.
-            // it's also backwards. The bottom part of the slider was 100, and the top -100.
-            // the formula below corrects this.
-            jsData.slider = (100 - js.rglSlider[0]) / 2;
-            
-            // POV values are done in 45 deg segments (0 is up) * 100.
-            // i.e. straight right = 90 deg = 9000.
-            // determine POV value by way of lookup table (divide by 4500)
-            unsigned int povListIndex = js.rgdwPOV[0] / 4500;
-            jsData.pov = (povListIndex < povList.size()) ? povList[povListIndex] : POV::POV_NONE;
-            
-            for (int i = 0; i < NUMBER_BUTTONS; i++)
-                jsData.buttons[i] = !!js.rgbButtons[i];
-            
             // joystick read complete
-            this->jsMap[pair.first] = jsData;
+            this->jsMap[pair.first].state = js;
         }
         
         this->rwLock.unlock();
@@ -343,7 +316,14 @@ void JoystickService::PollJoysticks(void)
     }
 }
 
-void JoystickService::LocateJoysticks(void)
+void JoystickService::LocateJoysticks()
 {
-    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, nullptr, DIEDFL_ATTACHEDONLY);
+    EnumerateContext context;
+    context.connectedJoysticks = &this->connectedJoysticks;
+    context.nextJoystickID = &this->nextJoystickID;
+    context.requestedJoysticks = &this->requestedJoysticks;
+    context.valid_devices = &this->valid_devices;
+    context.jsMap = &this->jsMap;
+
+    di->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumerateJoysticks, &context, DIEDFL_ATTACHEDONLY);
 }

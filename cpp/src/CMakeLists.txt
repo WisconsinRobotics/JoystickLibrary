@@ -3,23 +3,19 @@ set (CMAKE_CXX_STANDARD 11)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-set(JOYSTICK_LIBRARY_WIN32_SRC
-    joystick.cpp
-    joystick_win32.cpp
+file(GLOB JOYSTICK_LIBRARY_WIN32_SRC
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/win32/*.cpp
 )
 
-set(JOYSTICK_LIBRARY_LINUX_SRC
-    joystick.cpp
-    joystick_linux.cpp
-)
-
-set(JOYSTICK_LIBRARY_HEADERS
-    ${CMAKE_SOURCE_DIR}/include/joystick.h
+file(GLOB JOYSTICK_LIBRARY_LINUX_SRC
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/linux/*.cpp
 )
 
 if(MSVC)
     add_definitions(-DUNICODE -D_UNICODE)
-    add_library(JoystickLibrary STATIC ${JOYSTICK_LIBRARY_WIN32_SRC} ${JOYSTICK_LIBRARY_HEADERS})
+    add_library(JoystickLibrary STATIC ${JOYSTICK_LIBRARY_WIN32_SRC})
     
     # Force to always compile with W4
     if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
@@ -32,7 +28,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-missing-field-initializers -pedantic")
     find_package(PkgConfig)
     pkg_search_module(LIBEVDEV REQUIRED libevdev)
-    add_library(JoystickLibrary STATIC ${JOYSTICK_LIBRARY_LINUX_SRC} ${JOYSTICK_LIBRARY_HEADERS})
+    add_library(JoystickLibrary STATIC ${JOYSTICK_LIBRARY_LINUX_SRC})
     target_link_libraries(JoystickLibrary ${LIBEVDEV_LIBRARIES})
     target_include_directories(JoystickLibrary PUBLIC ${LIBEVDEV_INCLUDE_DIRS})
     target_compile_options(JoystickLibrary PUBLIC ${LIBEVDEV_CFLAGS_OTHER})

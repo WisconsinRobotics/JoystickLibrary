@@ -60,71 +60,14 @@ bool JoystickService::Start(void)
     return true;
 }
 
-bool JoystickService::GetX(int joystickID, int& x)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-    
-    x = jsMap[joystickID].x;
-    return true;
-}
-
-bool JoystickService::GetY(int joystickID, int& y)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    y = jsMap[joystickID].y;
-    return true;
-}
-
-bool JoystickService::GetZRot(int joystickID, int& zRot)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    zRot = jsMap[joystickID].rz;    
-    return true;
-}
-
-bool JoystickService::GetSlider(int joystickID, int& slider)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;  
-
-    slider = jsMap[joystickID].slider;
-    return true;    
-}
-
-bool JoystickService::GetButton(int joystickID, Button button, bool& buttonVal)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    buttonVal = jsMap[joystickID].buttons[(int) button];
-    return true;
-}
-
-bool JoystickService::GetButtons(int joystickID, std::array<bool, NUMBER_BUTTONS>& buttons)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;
-
-    buttons = jsMap[joystickID].buttons;
-    return true;
-}
-
-bool JoystickService::GetPOV(int joystickID, POV& pov)
-{
-    if (!this->initialized || !IsValidJoystickID(joystickID))
-        return false;  
-
-    pov = jsMap[joystickID].pov;    
-    return true;
-}
-
 bool JoystickService::IsValidJoystickID(int joystickID)
 {
-    return (this->jsMap.find(joystickID) != this->jsMap.end()) 
+    return this->initialized 
+                && (this->jsMap.find(joystickID) != this->jsMap.end()) 
                 && this->jsMap[joystickID].alive;
+}
+
+JoystickState JoystickService::GetState(int joystickID)
+{
+    return this->jsMap[joystickID].state;
 }

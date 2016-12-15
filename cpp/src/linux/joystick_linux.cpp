@@ -27,35 +27,12 @@
 
 #include <errno.h>
 #include <cstring>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <linux/input.h>
-#include <libevdev/libevdev.h>
-#include <string>
-#include <algorithm>
-
 #include "joystick.h"
 
 using namespace JoystickLibrary;
 
-constexpr int X_MIN = 0;
-constexpr int X_MAX = 1023;
-constexpr int Y_MIN = 0;
-constexpr int Y_MAX = 1023;
-constexpr int Z_MIN = 0;
-constexpr int Z_MAX = 255;
-constexpr int SLIDER_MIN = 255;
-constexpr int SLIDER_MAX = 0;
 
 std::thread enumerateThread;
-
-static int NormalizeAxisValue(int val, int min, int max)
-{
-    return (int) ((200.0 / (max - min)) * (val) - 100);
-}
 
 JoystickService::~JoystickService(void)
 {
@@ -135,68 +112,13 @@ void JoystickService::PollJoysticks(void)
                 } 
                 else if (rc == LIBEVDEV_READ_STATUS_SUCCESS)
                 {
-                    int button_offset;
-                    POV bitset;
                     switch (ev.type)
                     {
                         case EV_KEY:
-                            button_offset = ev.code - BTN_TRIGGER;
-                            if (button_offset < 0 || button_offset > NUMBER_BUTTONS)
-                                break;
-                            jsData.buttons[button_offset] = !!ev.value;
+                            jsData.state.buttons[ev.code] = !!ev.value;
                             break;
                         case EV_ABS:
-                            switch (ev.code)
-                            {
-                                case ABS_X:
-                                    jsData.x = NormalizeAxisValue(ev.value, X_MIN, X_MAX);
-                                    break;
-                                case ABS_Y:
-                                    jsData.y = -NormalizeAxisValue(ev.value, Y_MIN, Y_MAX);
-                                    break;
-                                case ABS_RZ:
-                                    jsData.rz = NormalizeAxisValue(ev.value, Z_MIN, Z_MAX);
-                                    break;
-                                case ABS_THROTTLE:
-                                    // slider goes from 0 -> 100
-                                    jsData.slider = 100 + (int) (((100.0 / (SLIDER_MAX - SLIDER_MIN)) * (ev.value)));
-                                    break;
-                                case ABS_HAT0X:
-                                    switch (ev.value)
-                                    {
-                                        case -1:
-                                            bitset = POV::POV_WEST;
-                                            break;
-                                        case 1:
-                                            bitset = POV::POV_EAST;
-                                            break;
-                                        default:
-                                            bitset = POV::POV_NONE;
-                                            break;
-                                    }
-
-                                    // wipe lower two bits and update with bitset
-                                    jsData.pov = (POV) (((int)jsData.pov & 0xC) | (int) bitset);
-                                    break;
-
-                                case ABS_HAT0Y:
-                                    switch (ev.value)
-                                    {
-                                        case -1:
-                                            bitset = POV::POV_NORTH;
-                                            break;
-                                        case 1:
-                                            bitset = POV::POV_SOUTH;
-                                            break;
-                                        default:
-                                            bitset = POV::POV_NONE;
-                                            break;
-                                    }
-
-                                    // wipe upper two bits and update with bitset
-                                    jsData.pov = (POV) (((int) jsData.pov & 0x3) |  (int) bitset);
-                                    break;
-                            }
+                            jsData.state.axes[ev.code] = ev.value;
                             break;
                         default:
                             break;        
@@ -236,6 +158,7 @@ void JoystickService::LocateJoysticks(void)
             struct libevdev *dev;
             char buffer[30];
             const char *devUniqueID;
+            bool device_match_found;
 
             if (!strstr(devinfo->d_name, "event"))
                 continue;
@@ -252,8 +175,17 @@ void JoystickService::LocateJoysticks(void)
                 continue;
             }
             
-            if (libevdev_get_id_vendor(dev) != JOYSTICK_VENDOR_ID ||
-                libevdev_get_id_product(dev) != JOYSTICK_PRODUCT_ID)
+            device_match_found = false;
+            for (auto& device : this->valid_devices)
+            {
+                if (libevdev_get_id_vendor(dev) == device.vendor_id && libevdev_get_id_product(dev) == device.product_id)
+                {
+                    device_match_found = true;
+                    break;
+                }
+            }
+            
+            if (!device_match_found)
             {
                 libevdev_free(dev);
                 close(fd);

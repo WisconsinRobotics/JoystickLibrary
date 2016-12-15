@@ -47,7 +47,7 @@ namespace JoystickLibraryTester
             { POV.POV_SOUTHEAST, "POV_SOUTHEAST" }
         };
 
-        static void PrintAbsoluteAxes(JoystickService s, int id)
+        static void PrintAbsoluteAxes(Extreme3DProService s, int id)
         {
             int x = 0, y = 0, z = 0, slider = 0;
 
@@ -63,9 +63,9 @@ namespace JoystickLibraryTester
             Console.WriteLine("X: {0} | Y: {1} | Z: {2} | Slider: {3}", x, y, z, slider);
         }
 
-        static void PrintButtons(JoystickService s, int id)
+        static void PrintButtons(Extreme3DProService s, int id)
         {
-            bool[] buttons = new bool[JoystickService.NUMBER_BUTTONS];
+            bool[] buttons = new bool[12];
 
             if (!s.GetButtons(id, ref buttons))
                 for (int i = 0; i < 12; i++)
@@ -76,10 +76,48 @@ namespace JoystickLibraryTester
             Console.WriteLine();
         }
 
-        static void PrintPOV(JoystickService s, int id)
+        static void PrintPOV(Extreme3DProService s, int id)
         {
             POV pov = POV.POV_NONE;
             if (!s.GetPOV(id, ref pov))
+                pov = POV.POV_NONE;
+
+            Console.WriteLine("{0}", povNameMap[pov]);
+        }
+
+        static void PrintAbsoluteAxes(Xbox360Service s, int id)
+        {
+            int lx = 0, ly = 0, rx = 0, ry = 0;
+
+            if (!s.GetLeftX(id, ref lx))
+                lx = 0;
+            if (!s.GetLeftY(id, ref ly))
+                ly = 0;
+            if (!s.GetRightX(id, ref rx))
+                rx = 0;
+            if (!s.GetRightY(id, ref ry))
+                ry = 0;
+
+            Console.WriteLine("LX: {0} | LY: {1} | RX: {2} | RY: {3}", lx, ly, rx, ry);
+        }
+
+        static void PrintButtons(Xbox360Service s, int id)
+        {
+            bool[] buttons = new bool[11];
+
+            if (!s.GetButtons(id, ref buttons))
+                for (int i = 0; i < 11; i++)
+                    buttons[i] = false;
+
+            for (int i = 0; i < 11; i++)
+                Console.Write("{0} {1} ", i, buttons[i]);
+            Console.WriteLine();
+        }
+
+        static void PrintPOV(Xbox360Service s, int id)
+        {
+            POV pov = POV.POV_NONE;
+            if (!s.GetDpad(id, ref pov))
                 pov = POV.POV_NONE;
 
             Console.WriteLine("{0}", povNameMap[pov]);
@@ -100,7 +138,8 @@ namespace JoystickLibraryTester
                 return;
             }
 
-            JoystickService s = new JoystickService(num_joysticks);
+            //Extreme3DProService s = new Extreme3DProService(num_joysticks);
+            Xbox360Service s = new Xbox360Service(num_joysticks);
             if (!s.Initialize())
             {
                 Console.WriteLine("Failed to initialize!");
@@ -114,7 +153,7 @@ namespace JoystickLibraryTester
             }
 
             Console.WriteLine("Waiting for a joystick to be plugged in...");
-            while (s.GetConnectedJoysticksCount() < 1);
+            while (s.GetConnectedJoysticksCount() < 1) ;
             Console.WriteLine("Found one - starting main loop.");
 
             while (true)
