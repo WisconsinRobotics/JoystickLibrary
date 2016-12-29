@@ -6,8 +6,9 @@ constexpr int NUMBER_BUTTONS = 11;
 
 Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
 {
-    this->valid_devices->push_back({ 0x045E, 0x028E });
-    this->valid_devices->push_back({ 0x045E, 0x0291 });
+    this->valid_devices->push_back({ 0x045E, 0x028E });	// Microsoft Xbox 360 Controller
+    this->valid_devices->push_back({ 0x045E, 0x0291 });	// Microsoft Xbox 360 Wireless Controller
+    this->valid_devices->push_back({ 0x0E6F, 0x0213 });	// Afterglow AX.1 for Xbox 360
 }
 
 Xbox360Service::~Xbox360Service()
