@@ -9,7 +9,7 @@ Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_jo
 {
     this->valid_devices = {
         { 0x045E, 0x028E },	// Microsoft Xbox 360 Controller
-        { 0x045E, 0x0291 }, // Microsoft Xbox 360 Wireless Controller
+        { 0x045E, 0x0291 },	// Microsoft Xbox 360 Wireless Controller
         { 0x0E6F, 0x0213 }	// Afterglow AX.1 for Xbox 360
     };
 }
