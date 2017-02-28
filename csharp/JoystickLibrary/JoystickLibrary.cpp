@@ -203,17 +203,17 @@ JoystickService::JoystickService(int number_joysticks)
     this->connectedJoysticks = 0;
     this->nextJoystickID = 1;
 
-    this->jsPollerStop = false;
     this->initialized = false;
     this->jsMap = new std::map<int, JoystickData>();
     this->valid_devices = new std::vector<JoystickDescriptor>();
     this->m_lock = gcnew Object();
     this->di = new LPDIRECTINPUT8W;
+    this->isRunning = false;
 }
 
 JoystickService::~JoystickService()
 {
-    this->jsPollerStop = true;
+    this->isRunning = false;
 
     if (this->jsPoller->IsAlive)
         this->jsPoller->Join();
@@ -272,10 +272,26 @@ bool JoystickService::Start(void)
     if (!this->initialized)
         return false;
 
-    jsPollerStop = false;
+    if (this->isRunning)
+        return true;
+
+    // ensure thread is dead before we restart it
+    if (jsPoller && jsPoller->IsAlive)
+        jsPoller->Abort();
+
+    isRunning = true;
     jsPoller = gcnew Thread(gcnew ThreadStart(this, &JoystickService::PollJoysticks));
     jsPoller->Start();
     return true;
+}
+
+void JoystickService::Stop(void)
+{
+    if (!this->initialized || !jsPoller->IsAlive)
+        return;
+
+    this->isRunning = false;
+    jsPoller->Join();
 }
 
 bool JoystickService::IsValidJoystickID(int joystickID)
@@ -304,7 +320,7 @@ void JoystickService::PollJoysticks()
     if (!this->initialized)
         return;
 
-    while (!this->jsPollerStop)
+    while (this->isRunning)
     {
         HRESULT hr;
         DIJOYSTATE js;

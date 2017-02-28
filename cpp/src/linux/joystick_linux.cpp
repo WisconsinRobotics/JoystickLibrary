@@ -36,7 +36,7 @@ std::thread enumerateThread;
 
 JoystickService::~JoystickService(void)
 {
-    this->jsPollerStop = true;
+    this->isRunning = false;
     
     if (this->jsPoller.joinable())
         this->jsPoller.join();
@@ -83,7 +83,7 @@ void JoystickService::PollJoysticks(void)
 
     enumerateThread = std::thread(&JoystickService::LocateJoysticks, this);
 
-    while (!this->jsPollerStop)
+    while (this->isRunning)
     {
         this->rwLock.lock();
         
@@ -139,7 +139,7 @@ void JoystickService::PollJoysticks(void)
 
 void JoystickService::LocateJoysticks(void)
 {
-    while (!this->jsPollerStop) 
+    while (this->isRunning) 
     {
         if (this->connectedJoysticks >= this->requestedJoysticks)
             continue;

@@ -136,6 +136,8 @@ namespace JoystickLibrary
          */
         bool Start();
 
+        void Stop();
+
         /**
          * Removes the specified joystick ID.
          * @param joystickID the joystick ID
@@ -191,7 +193,7 @@ namespace JoystickLibrary
         std::mutex rwLock;
         int requestedJoysticks;
         int connectedJoysticks;
-        bool jsPollerStop;
+        bool isRunning;
         bool initialized;
         int nextJoystickID;
     };

@@ -114,6 +114,8 @@ namespace JoystickLibrary
          */
         bool Start();
 
+        void Stop();
+
         /**
           Removes the specified joystick ID.
           @param joystickID the joystick ID
@@ -163,7 +165,7 @@ namespace JoystickLibrary
         int requestedJoysticks;
         int connectedJoysticks;
         int nextJoystickID;
-        System::Boolean jsPollerStop;
+        System::Boolean isRunning;
         System::Boolean initialized;
     };
 

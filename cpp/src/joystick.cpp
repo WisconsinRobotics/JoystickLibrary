@@ -33,7 +33,7 @@ JoystickService::JoystickService(int number_joysticks)
 {
     this->requestedJoysticks = number_joysticks;
     this->connectedJoysticks = 0;
-    this->jsPollerStop = false;
+    this->isRunning = false;
     this->initialized = false;
     this->nextJoystickID = 1;
 }
@@ -55,9 +55,19 @@ bool JoystickService::Start(void)
     if (!this->initialized)
         return false;
     
-    jsPollerStop = false;
+    if (this->isRunning)
+        return true;
+
+    isRunning = true;
     jsPoller = std::thread(&JoystickService::PollJoysticks, this);
     return true;
+}
+
+void JoystickService::Stop()
+{
+    this->isRunning = false;
+    if (jsPoller.joinable())
+        jsPoller.join();
 }
 
 bool JoystickService::IsValidJoystickID(int joystickID)

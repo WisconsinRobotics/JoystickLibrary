@@ -193,7 +193,7 @@ static BOOL CALLBACK EnumerateJoysticks(const DIDEVICEINSTANCE *instance, void *
 
 JoystickService::~JoystickService()
 {
-    this->jsPollerStop = true;
+    this->isRunning = false;
     
     if (this->jsPoller.joinable())
         this->jsPoller.join();  
@@ -257,7 +257,7 @@ void JoystickService::PollJoysticks()
     if (!this->initialized)
         return;
     
-    while (!this->jsPollerStop)
+    while (this->isRunning)
     {
         HRESULT hr;
         DIJOYSTATE js;
