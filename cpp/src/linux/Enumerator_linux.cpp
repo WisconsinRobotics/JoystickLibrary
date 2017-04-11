@@ -254,11 +254,7 @@ void Enumerator::udev_thread()
         action = udev_device_get_action(dev);
         if (strcmp(action, DEVICE_ADDED) == 0)
             this->__run_enum(devnode);
-#if 1
-        printf("   Node: %s\n", udev_device_get_devnode(dev));
-        printf("   Devtype: %s\n", udev_device_get_devtype(dev));
-        printf("   Action: %s\n", udev_device_get_action(dev));	
-#endif
+        
         udev_device_unref(dev);
 	}
 }
