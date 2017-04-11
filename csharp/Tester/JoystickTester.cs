@@ -27,7 +27,7 @@
 
 using System;
 using System.Collections.Generic;
-using JoystickLibrary;
+using JoystickLibrarySharp;
 
 
 namespace JoystickLibraryTester
@@ -125,43 +125,31 @@ namespace JoystickLibraryTester
 
         static void Main(string[] args)
         {
-            if (args.Length < 1)
+            Extreme3DProService es = new Extreme3DProService();
+            Xbox360Service xs = new Xbox360Service();
+            if (!xs.Initialize())
             {
-                Console.WriteLine("usage: JoystickLibraryTester.exe <number_joysticks>");
+                Console.WriteLine("Failed to initialize Xbox!");
                 return;
             }
 
-            int num_joysticks;
-            if (!int.TryParse(args[0], out num_joysticks))
+            if (!es.Initialize())
             {
-                Console.WriteLine("Please enter a valid number of joysticks (> 0).");
+                Console.WriteLine("Failed to initialize Logitech!");
                 return;
             }
 
-            //Extreme3DProService s = new Extreme3DProService(num_joysticks);
-            Xbox360Service s = new Xbox360Service(num_joysticks);
-            if (!s.Initialize())
-            {
-                Console.WriteLine("Failed to initialize!");
-                return;
-            }
-
-            if (!s.Start())
-            {
-                Console.WriteLine("Failed to start!");
-                return;
-            }
 
             Console.WriteLine("Waiting for a joystick to be plugged in...");
-            while (s.GetConnectedJoysticksCount() < 1) ;
+            while (es.GetNumberConnected() < 1) ;
             Console.WriteLine("Found one - starting main loop.");
 
             while (true)
             {
-                foreach (int i in s.GetJoystickIDs())
+                foreach (int i in es.GetIDs())
                 {
                     Console.Write("[{0}] ", i);
-                    PrintAbsoluteAxes(s, i);
+                    PrintAbsoluteAxes(es, i);
                     //PrintButtons(s, i);
                     //PrintPOV(s, i); 
                 }

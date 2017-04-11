@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JoystickLibrary", "JoystickLibrary\JoystickLibrary.vcxproj", "{CFFB8564-F219-4721-B190-0509D44AF4C8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JoystickLibrarySharp", "JoystickLibrarySharp\JoystickLibrarySharp.vcxproj", "{CFFB8564-F219-4721-B190-0509D44AF4C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JoystickLibraryTester", "JoystickLibraryTester\JoystickLibraryTester.csproj", "{ECD7C2A6-ECC5-4DE7-86B7-7915014DCF6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{ECD7C2A6-ECC5-4DE7-86B7-7915014DCF6D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JoystickLibraryNative", "JoystickLibraryNative\JoystickLibraryNative.vcxproj", "{DBC5216F-719F-4679-992C-31EFECE1592A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,8 +19,8 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|Any CPU.Build.0 = Debug|x64
+		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|Any CPU.Build.0 = Debug|Win32
 		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|x64.ActiveCfg = Debug|x64
 		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|x64.Build.0 = Debug|x64
 		{CFFB8564-F219-4721-B190-0509D44AF4C8}.Debug|x86.ActiveCfg = Debug|Win32
@@ -40,6 +42,17 @@ Global
 		{ECD7C2A6-ECC5-4DE7-86B7-7915014DCF6D}.Release|x64.Build.0 = Release|Any CPU
 		{ECD7C2A6-ECC5-4DE7-86B7-7915014DCF6D}.Release|x86.ActiveCfg = Release|Any CPU
 		{ECD7C2A6-ECC5-4DE7-86B7-7915014DCF6D}.Release|x86.Build.0 = Release|Any CPU
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|Any CPU.Build.0 = Debug|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|x64.ActiveCfg = Debug|x64
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|x64.Build.0 = Debug|x64
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|x86.ActiveCfg = Debug|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Debug|x86.Build.0 = Debug|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Release|Any CPU.ActiveCfg = Release|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Release|x64.ActiveCfg = Release|x64
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Release|x64.Build.0 = Release|x64
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Release|x86.ActiveCfg = Release|Win32
+		{DBC5216F-719F-4679-992C-31EFECE1592A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

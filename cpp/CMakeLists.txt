@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(JoystickLibrary)
-
+set(CMAKE_BUILD_TYPE Debug)
 set (JoystickLibrary_VERSION_MAJOR 1)
 set (JoystickLibrary_VERSION_MINOR 0)
 

@@ -1,8 +1,7 @@
-#include "joystick.h"
+#include "Extreme3DProService.hpp"
 
 using namespace JoystickLibrary;
 
-constexpr int NUMBER_BUTTONS = 12;
 constexpr int X_MIN = 0;
 constexpr int X_MAX = 1023;
 constexpr int Y_MIN = 0;
@@ -12,16 +11,17 @@ constexpr int Z_MAX = 255;
 constexpr int SLIDER_MIN = 255;
 constexpr int SLIDER_MAX = 0;
 
-
-Extreme3DProService::Extreme3DProService(int number_joysticks) : JoystickService(number_joysticks)
-{
-    this->valid_devices = {
-        { 0x46D, 0xC215 }
-    };
+Extreme3DProService::Extreme3DProService() : JoystickService()
+{ 
 }
 
 Extreme3DProService::~Extreme3DProService()
 {
+}
+
+void Extreme3DProService::OnDeviceChanged(DeviceStateChange ds)
+{
+    this->ProcessDeviceChange(EXTREME_3D_PRO_IDS, ds);
 }
 
 bool Extreme3DProService::GetX(int joystickID, int& x)

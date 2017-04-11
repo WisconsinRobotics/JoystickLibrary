@@ -1,9 +1,7 @@
-#include "joystick.h"
+#include "Xbox360Service.hpp"
 
 using namespace JoystickLibrary;
 
-
-constexpr int NUMBER_BUTTONS = 11;
 constexpr int X_MIN = -32768;
 constexpr int X_MAX = 32767;
 constexpr int Y_MIN = -32768;
@@ -11,18 +9,17 @@ constexpr int Y_MAX = 32767;
 constexpr int TRIGGER_MIN = -255;
 constexpr int TRIGGER_MAX = 255;
 
-Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
-{
-    this->valid_devices = {
-        { 0x045E, 0x028E },	// Microsoft Xbox 360 Controller
-        { 0x045E, 0x0291 },	// Microsoft Xbox 360 Wireless Controller
-        { 0x045E, 0x02A1 }, // Microsoft Xbox 360 Wireless Controller
-        { 0x0E6F, 0x0213 }	// Afterglow AX.1 for Xbox 360
-    };
+Xbox360Service::Xbox360Service() : JoystickService()
+{ 
 }
 
 Xbox360Service::~Xbox360Service()
 {
+}
+
+void Xbox360Service::OnDeviceChanged(DeviceStateChange ds)
+{
+    this->ProcessDeviceChange(XBOX_IDS, ds);
 }
 
 bool Xbox360Service::GetLeftX(int joystickID, int& leftX)

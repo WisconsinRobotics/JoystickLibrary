@@ -1,14 +1,10 @@
-#include "joystick.h"
+#include "Extreme3DProService.hpp"
 
 using namespace JoystickLibrary;
 
-constexpr int NUMBER_BUTTONS = 12;
 
-Extreme3DProService::Extreme3DProService(int number_joysticks) : JoystickService(number_joysticks)
+Extreme3DProService::Extreme3DProService()
 {
-    this->valid_devices = {
-        { 0x46D, 0xC215 }
-    };
 }
 
 Extreme3DProService::~Extreme3DProService()
@@ -82,4 +78,9 @@ bool Extreme3DProService::GetPOV(int joystickID, POV& pov)
     unsigned int povListIndex = this->GetState(joystickID).rgdwPOV[0] / 4500;
     pov = (povListIndex < povList.size()) ? povList[povListIndex] : POV::POV_NONE;
     return true;
+}
+
+void Extreme3DProService::OnDeviceChanged(DeviceStateChange ds)
+{
+    this->ProcessDeviceChange(EXTREME_3D_PRO_IDS, ds);
 }

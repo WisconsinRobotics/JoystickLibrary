@@ -1,22 +1,19 @@
-#include "joystick.h"
+#include "Xbox360Service.hpp"
 
 using namespace JoystickLibrary;
 
-constexpr int NUMBER_BUTTONS = 11;
 
-
-Xbox360Service::Xbox360Service(int number_joysticks) : JoystickService(number_joysticks)
-{
-    this->valid_devices = {
-        { 0x045E, 0x028E },	// Microsoft Xbox 360 Controller
-        { 0x045E, 0x0291 },	// Microsoft Xbox 360 Wireless Controller
-        { 0x045E, 0x02A1 }, // Microsoft Xbox 360 Wireless Controller
-        { 0x0E6F, 0x0213 }	// Afterglow AX.1 for Xbox 360
-    };
+Xbox360Service::Xbox360Service() : JoystickService()
+{ 
 }
 
 Xbox360Service::~Xbox360Service()
 {
+}
+
+void Xbox360Service::OnDeviceChanged(DeviceStateChange ds)
+{
+    this->ProcessDeviceChange(XBOX_IDS, ds);
 }
 
 bool Xbox360Service::GetLeftX(int joystickID, int& leftX)
@@ -85,7 +82,7 @@ bool Xbox360Service::GetDpad(int joystickID, POV& dpad)
     // POV values are done in 45 deg segments (0 is up) * 100.
     // i.e. straight right = 90 deg = 9000.
     // determine POV value by way of lookup table (divide by 4500)
-    unsigned int povListIndex = jsMap[joystickID].state.rgdwPOV[0] / 4500;
+    unsigned int povListIndex = this->GetState(joystickID).rgdwPOV[0] / 4500;
     dpad = (povListIndex < povList.size()) ? povList[povListIndex] : POV::POV_NONE;
     return true;
 }

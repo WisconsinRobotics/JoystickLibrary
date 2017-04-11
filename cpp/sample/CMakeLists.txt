@@ -1,4 +1,4 @@
-# CMakeListthis->service->txt for jstester sample application
+# CMakeLists.txt for jstester sample application
 
 add_executable (jstester jstester.cpp ServiceTester.h)
 

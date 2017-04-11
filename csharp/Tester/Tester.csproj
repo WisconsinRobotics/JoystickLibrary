@@ -51,7 +51,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\JoystickLibrary\JoystickLibrary.vcxproj">
+    <ProjectReference Include="..\JoystickLibrarySharp\JoystickLibrarySharp.vcxproj">
       <Project>{cffb8564-f219-4721-b190-0509d44af4c8}</Project>
       <Name>JoystickLibrary</Name>
     </ProjectReference>
