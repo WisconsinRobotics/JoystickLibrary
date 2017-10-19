@@ -39,6 +39,7 @@ namespace JoystickLibrary
     public:
         const std::vector<JoystickDescriptor> XBOX_IDS {
             { 0x045E, 0x028E },	// Microsoft Xbox 360 Controller
+			{ 0x0E6F, 0x0401 },	// Microsoft Xbox 360 Controller
             { 0x045E, 0x0291 },	// Microsoft Xbox 360 Wireless Controller
             { 0x0E6F, 0x0213 }	// Afterglow AX.1 for Xbox 360
         };
