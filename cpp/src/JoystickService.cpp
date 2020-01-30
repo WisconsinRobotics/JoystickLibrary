@@ -79,6 +79,28 @@ JoystickState JoystickLibrary::JoystickService::GetState(int id) const
                     break;        
             }
         }
+        else if (rc == LIBEVDEV_READ_STATUS_SYNC)
+        {
+            // joy state became unsync'd, so perform a resync
+            std::printf("Resynchronizing joystick %d!\n", id);
+            while (true)
+            {
+                rc = libevdev_next_event(dev, LIBEVDEV_READ_FLAG_SYNC | LIBEVDEV_READ_FLAG_BLOCKING, &ev);
+                if (rc != LIBEVDEV_READ_STATUS_SYNC)
+                    break;
+                switch (ev.type)
+                {
+                    case EV_KEY:
+                        jsData.state.buttons[ev.code] = !!ev.value;
+                        break;
+                    case EV_ABS:
+                        jsData.state.axes[ev.code] = ev.value;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
         else
         {
             // set this one to inactive
