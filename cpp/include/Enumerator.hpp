@@ -46,6 +46,7 @@ namespace JoystickLibrary
         int udev_mon_fd;
         std::thread deviceListenerThread;
         std::mutex jsMapLock;
+        int udev_select_pipe[2];
 
         EnumeratorImpl()
         {
@@ -60,7 +61,16 @@ namespace JoystickLibrary
             if (udev_monitor)
                 udev_monitor_unref(udev_monitor);
             if (deviceListenerThread.joinable())
+            {
+                // write some random byte to the pipe to break out of the select loop
+                uint8_t zero = 0;
+                write(udev_select_pipe[1], &zero, sizeof(uint8_t));
+                // join the select loop thread
                 deviceListenerThread.join();
+                // clean up the pipe
+                close(udev_select_pipe[0]);
+                close(udev_select_pipe[1]);
+            }
         }
 #else
         #error Not currently supported!

@@ -70,6 +70,9 @@ bool Enumerator::Start()
     // initial enumeration
     this->__run_enum();
 
+    // create "self-pipe" to udev selector
+    pipe(this->impl->udev_select_pipe);
+
     // init udev thread
     this->impl->deviceListenerThread = std::thread(&Enumerator::udev_thread, this);
 
@@ -235,8 +238,17 @@ void Enumerator::udev_thread()
         udev_device *dev;
 		
 		FD_ZERO(&fds);
-		FD_SET(this->impl->udev_mon_fd, &fds);
-		ret = select(this->impl->udev_mon_fd + 1, &fds, NULL, NULL, NULL);
+        int udev_fd = this->impl->udev_mon_fd;
+        int pipe_fd = this->impl->udev_select_pipe[0];
+		FD_SET(udev_fd, &fds);
+        FD_SET(pipe_fd, &fds);
+		ret = select(std::max(udev_fd, pipe_fd) + 1, &fds, NULL, NULL, NULL);
+
+        // if we receive something and `started` is false, it's probably
+        // the "break-out-of-select" signal, so exit the loop immediately
+        if (!this->started)
+            break;
+
 		if (ret <= 0 || !FD_ISSET(this->impl->udev_mon_fd, &fds))
             continue;
 
