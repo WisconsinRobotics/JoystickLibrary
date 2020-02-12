@@ -26,6 +26,8 @@ namespace JoystickLibrary
             POV::POV_WEST,
             POV::POV_NORTHWEST,
         };
+#else
+        int GetAxis(int id, int axisId) const;
 #endif
 
         virtual void OnDeviceChanged(DeviceStateChange ds) = 0;

@@ -27,7 +27,7 @@ bool Xbox360Service::GetLeftX(int joystickID, int& leftX)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    leftX = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_X], X_MIN, X_MAX);
+    leftX = NormalizeAxisValue(this->GetAxis(joystickID, ABS_X), X_MIN, X_MAX);
     return true;
 }
 
@@ -36,7 +36,7 @@ bool Xbox360Service::GetLeftY(int joystickID, int& leftY)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    leftY = -NormalizeAxisValue(this->GetState(joystickID).axes[ABS_Y], Y_MIN, Y_MAX);
+    leftY = -NormalizeAxisValue(this->GetAxis(joystickID, ABS_Y), Y_MIN, Y_MAX);
     return true;
 }
 
@@ -45,7 +45,7 @@ bool Xbox360Service::GetRightX(int joystickID, int& rightX)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    rightX = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_RX], X_MIN, X_MAX);
+    rightX = NormalizeAxisValue(this->GetAxis(joystickID, ABS_RX), X_MIN, X_MAX);
     return true;
 }
 
@@ -54,7 +54,7 @@ bool Xbox360Service::GetRightY(int joystickID, int& rightY)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    rightY = -NormalizeAxisValue(this->GetState(joystickID).axes[ABS_RY], Y_MIN, Y_MAX);
+    rightY = -NormalizeAxisValue(this->GetAxis(joystickID, ABS_RY), Y_MIN, Y_MAX);
     return true;
 }
 
@@ -63,7 +63,7 @@ bool Xbox360Service::GetLeftTrigger(int joystickID, int& leftTrigger)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    leftTrigger = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_Z], TRIGGER_MIN, TRIGGER_MAX);
+    leftTrigger = NormalizeAxisValue(this->GetAxis(joystickID, ABS_Z), TRIGGER_MIN, TRIGGER_MAX);
     return true;
 }
 
@@ -72,7 +72,7 @@ bool Xbox360Service::GetRightTrigger(int joystickID, int& rightTrigger)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    rightTrigger = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_RZ], TRIGGER_MIN, TRIGGER_MAX);
+    rightTrigger = NormalizeAxisValue(this->GetAxis(joystickID, ABS_RZ), TRIGGER_MIN, TRIGGER_MAX);
     return true;
 }
 
@@ -82,7 +82,7 @@ bool Xbox360Service::GetDpad(int joystickID, POV& dpad)
         return false;
 
     POV horizontal, vertical;
-    switch (this->GetState(joystickID).axes[ABS_HAT0X])
+    switch (this->GetAxis(joystickID, ABS_HAT0X))
     {
         case -1:
             horizontal = POV::POV_WEST;
@@ -95,7 +95,7 @@ bool Xbox360Service::GetDpad(int joystickID, POV& dpad)
             break;
     }
 
-    switch (this->GetState(joystickID).axes[ABS_HAT0Y])
+    switch (this->GetAxis(joystickID, ABS_HAT0Y))
     {
         case -1:
             vertical = POV::POV_NORTH;

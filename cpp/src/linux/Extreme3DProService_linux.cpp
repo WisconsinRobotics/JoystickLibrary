@@ -29,7 +29,7 @@ bool Extreme3DProService::GetX(int joystickID, int& x)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    x = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_X], X_MIN, X_MAX);
+    x = NormalizeAxisValue(this->GetAxis(joystickID, ABS_X), X_MIN, X_MAX);
     return true;
 }
 
@@ -38,7 +38,7 @@ bool Extreme3DProService::GetY(int joystickID, int& y)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    y =  -NormalizeAxisValue(this->GetState(joystickID).axes[ABS_Y], Y_MIN, Y_MAX);
+    y =  -NormalizeAxisValue(this->GetAxis(joystickID, ABS_Y), Y_MIN, Y_MAX);
     return true;
 }
 
@@ -47,7 +47,7 @@ bool Extreme3DProService::GetZRot(int joystickID, int& zRot)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    zRot = NormalizeAxisValue(this->GetState(joystickID).axes[ABS_RZ], Z_MIN, Z_MAX);
+    zRot = NormalizeAxisValue(this->GetAxis(joystickID, ABS_RZ), Z_MIN, Z_MAX);
     return true;
 }
 
@@ -56,7 +56,7 @@ bool Extreme3DProService::GetSlider(int joystickID, int& slider)
     if (!IsValidJoystickID(joystickID))
         return false;
 
-    slider = 100 + (int) (((100.0 / (SLIDER_MAX - SLIDER_MIN)) * (this->GetState(joystickID).axes[ABS_THROTTLE])));
+    slider = 100 + (int) (((100.0 / (SLIDER_MAX - SLIDER_MIN)) * (this->GetAxis(joystickID, ABS_THROTTLE))));
     return true;
 }
 
@@ -85,7 +85,7 @@ bool Extreme3DProService::GetPOV(int joystickID, POV& pov)
         return false;
 
     POV horizontal, vertical;
-    switch (this->GetState(joystickID).axes[ABS_HAT0X])
+    switch (this->GetAxis(joystickID, ABS_HAT0X))
     {
         case -1:
             horizontal = POV::POV_WEST;
@@ -98,7 +98,7 @@ bool Extreme3DProService::GetPOV(int joystickID, POV& pov)
             break;
     }
 
-    switch (this->GetState(joystickID).axes[ABS_HAT0Y])
+    switch (this->GetAxis(joystickID, ABS_HAT0Y))
     {
         case -1:
             vertical = POV::POV_NORTH;

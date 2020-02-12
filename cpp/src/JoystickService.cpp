@@ -148,3 +148,24 @@ void JoystickService::ProcessDeviceChange(std::vector<JoystickDescriptor> id_lis
             ids.erase(id_itr);
     }
 }
+
+#ifndef _WIN32
+// on linux, use ioctl to get initial states for joysticks
+int JoystickLibrary::JoystickService::GetAxis(int id, int axisId) const
+{
+    std::map<int, int> axes = this->GetState(id).axes;
+    // look up a cached value
+    std::map<int, int>::iterator axisEntry = axes.find(axisId);
+    if (axisEntry != axes.end())
+    {
+        // cache hit!
+        return axisEntry->second;
+    }
+    // if there's nothing, retrieve the current value
+    enumerator.impl->jsMapLock.lock();
+    int axisValue = libevdev_get_event_value(enumerator.impl->jsMap[id].handle.dev, EV_ABS, axisId);
+    axes[axisId] = axisValue;
+    enumerator.impl->jsMapLock.unlock();
+    return axisValue;
+}
+#endif
